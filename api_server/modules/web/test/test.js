@@ -34,7 +34,7 @@ const SIMPLE_TESTS = [
 	},
 	{
 		route: '/web/user/password/updated',
-		text: 'Return to your IDE to sign into CodeStream.'
+		text: 'Return to your IDE'
 	}
 ];
 

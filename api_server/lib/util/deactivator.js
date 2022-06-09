@@ -1,6 +1,6 @@
 const MongoClient = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/mongo/mongo_client');
 const ApiConfig = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/config/config');
-const ObjectID = require('mongodb').ObjectID;
+const ObjectId = require('mongodb').ObjectId;
 const UserIndexes = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/users/indexes');
 const RepoIndexes = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/repos/indexes');
 const StreamIndexes = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/streams/indexes');
@@ -59,13 +59,8 @@ class Deleter {
 		if (!this.teamIdOrName) {
 			return;
 		}
-		try {
-			this.teamId = ObjectID(this.teamIdOrName).toString();
-			await this.getTeamById();
-		}
-		catch (error) {
-			await this.getTeamByName();
-		}
+		this.teamId = ObjectId(this.teamIdOrName).toString();
+		await this.getTeamById();
 	}
 
 	async getTeamById () {
@@ -81,6 +76,8 @@ class Deleter {
 	}
 
 	async getTeamByName () {
+		throw 'getting team by name is no longer supported';
+		/*
 		let teams;
 		try {
 			teams = await this.mongoClient.mongoCollections.teams.getByQuery(
@@ -101,6 +98,7 @@ class Deleter {
 		}
 		this.team = teams[0];
 		this.teamId = this.team.id;
+		*/
 	}
 
 	async getRepo () {
@@ -117,7 +115,7 @@ class Deleter {
 
 	async getUser () {
 		try {
-			this.userId = ObjectID(this.userIdOrEmail).toString();
+			this.userId = ObjectId(this.userIdOrEmail).toString();
 			await this.getUserById();
 		}
 		catch (error) {
@@ -205,7 +203,7 @@ class Deleter {
 		let query, hint;
 		if (this.teamId) {
 			query = { teamId: this.teamId };
-			hint = StreamIndexes.byName;
+			hint = StreamIndexes.byTeamId; // ???
 		}
 		else {
 			if (!this.repoIds && !this.repoId) {

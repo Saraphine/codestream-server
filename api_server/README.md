@@ -40,7 +40,7 @@ sandbox. This is how installations are performed for our CI/CD pipelines.
 1. If you're using dev_tools on your own computer, bring it up to date
    (`dt-selfupdate -y`). You don't need to do this if you're using a managed EC2
    instance.
-1. Update your secrets (`dt-update-secrets -y`).
+1. Update your secrets (`dt-dev-update-secrets -y`).
 1. Select a codestream configuration to use. To get up and running quickly, this
    command will select out-of-the-box 'codestream-cloud' as your configuration.
 	```
@@ -61,7 +61,7 @@ sandbox. This is how installations are performed for our CI/CD pipelines.
    have not loaded a dev_tools mongo sandbox). A default api sandbox name of
    `api` is assumed in some tools so we'll use it here (though you can change
    it).
-   
+
    For private repo workflows:
    ```
    dt-sb-install --name api --type cs_server_nr --info-file sb.info.nr.api --yes [--no-deps]
@@ -80,8 +80,8 @@ sandbox. This is how installations are performed for our CI/CD pipelines.
 	dt-sb-create-playground -t $CS_API_TOP/sandbox/playgrounds/default.template
 	```
 1. Install the [inbound email](../inbound_email/README.md), [outbound
-   email](../outbound_email/README.md), [broadcaster](../broadcaster/README.md)
-   & [onprem admin](../onprem_admin/README.md) sandboxes.
+   email](../outbound_email/README.md) & [broadcaster](../broadcaster/README.md)
+   sandboxes.
 1. Load all of your sandboxes into one shell and create a `cs` playground for
    your codestream-cloud configuration.
 	```

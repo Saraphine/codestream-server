@@ -9,12 +9,16 @@ class PutPostRequest extends PutRequest {
 
 	// authorize the request for the current user
 	async authorize () {
-		// get the post, only the author of the post can edit it
-		const post = await this.data.posts.getById(this.request.params.id);
-		if (!post) {
-			throw this.errorHandler.error('notFound', { info: 'post' });
+		// make sure the user has access to the post, note that even though we also check that they
+		// are they author of the post (below), they still need to be an active member of the team
+		// (they might have been removed, in which case they should no longer be able to edit)
+		this.post = await this.user.authorizePost(this.request.params.id, this);
+		if (!this.post) {
+			throw this.errorHandler.error('updateAuth', { reason: 'the user does not have access to this post' });
 		}
-		if (post.get('creatorId') !== this.user.id) {
+
+		// only the author can actually edit the post
+		if (this.post.get('creatorId') !== this.user.id) {
 			throw this.errorHandler.error('updateAuth', { reason: 'only the post author can edit the post' });
 		}
 	}
@@ -26,11 +30,12 @@ class PutPostRequest extends PutRequest {
 
 	// publish the post to the appropriate broadcaster channel
 	async publishPost () {
+		if (!this.post.get('teamId')) { return; }
 		await new PostPublisher({
 			data: this.responseData,
 			request: this,
 			broadcaster: this.api.services.broadcaster,
-			stream: this.updater.stream.attributes
+			teamId: this.post.get('teamId')
 		}).publishPost();
 	}
 

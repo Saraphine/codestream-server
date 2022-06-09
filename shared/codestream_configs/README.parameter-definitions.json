@@ -33,6 +33,7 @@
 		"phoneHomeUrl": "server-side endpoint for phone home data collection [CS_API_PHONE_HOME_URL]",
 		"port": "Network port for the api service [CS_API_PORT]",
 		"publicApiUrl": "public url to access the API server from beyond [CS_API_PUBLIC_URL]",
+		"requireTLS12": "enable TLS 1.2 communications for compliance [CS_API_TLS_12]",
 		"securePort": "Secure network port for the api service [CS_API_SECURE_PORT]",
 		"sessionAwayTimeout": "how long before we call a user 'away' from keyboard (in millisecs) [CS_API_SESSION_AWAY_TIMEOUT]",
 		"showConfig": "print exported api configuration data to console [CS_API_SHOW_CFG]",
@@ -90,6 +91,16 @@
 			"disabled": "disable sendgrid delivery service",
 			"url": "sendgrid api uri"
 		}
+	},
+	"environmentGroup": {
+		"<envId>": {
+			"name": "user-facing environment name",
+			"publicApiUrl": "public url of api",
+			"shortName": "user-facing environment short identifier"
+		}
+	},
+	"environmentGroupSecrets": {
+		"requestAuth": "secret shared by all environments in one environment group used to authenticate inter-environment requests [CS_API_ENVGRP_SECRETS_REQUESET_AUTH]"
 	},
 	"inboundEmailServer": {
 		"inboundEmailDirectory": "new email files will be delivered to this directory by the mail agent [CS_MAILIN_INBOUND_EMAIL_DIR]",
@@ -170,6 +181,16 @@
 				"disabled": "disable integration"
 			}
 		},
+		"newrelic": {
+			"<appProvider>": {
+				"accountNumber": "NR1 Account Number for webview telemetry [CSSVC_NEWRELIC_WEBVIEW_ACCOUNT_NUMBER]",
+				"browserIngestKey": "NR1 ingest browser key [CSSVC_NEWRELIC_BROWSER_KEY]",
+				"licenseIngestKey": "NR1 ingest license key [CSSVC_NEWRELIC_LICENSE_KEY]",
+				"telemetryEndpoint": "Host endpoint passed to APM tracing library [CSSVC_NEWRELIC_TELEMETRY_ENDPOINT]",
+				"webviewAgentId": "NR1 Agent ID for webview telemetry [CSSVC_NEWRELIC_WEBVIEW_AGENT_ID]",
+				"webviewAppId": "NR1 App ID for webview telemetry [CSSVC_NEWRELIC_WEBVIEW_APP_ID]"
+			}
+		},
 		"okta": {
 			"<appProvider>": {
 				"appClientId": "Okta API client Id",
@@ -247,15 +268,20 @@
 	},
 	"sharedGeneral": {
 		"installationId": "unique identifier for the onprem installation [CSSVC_INSTALLATION_ID]",
+		"isProductionCloud": "identifies customer-facing environments [CSSVC_IS_PRODUCTION_CLOUD]",
+		"newRelicApiUrl": "NR1 user-facing api [CSSVC_NEW_RELIC_API_URL]",
+		"newRelicLandingServiceUrl": "service to decide if user has an account in NR1 [CSSVC_NEW_RELIC_LANDING_SERVICE_URL]",
 		"runTimeEnvironment": "run-time environment (local, onprem, prod, qa, pd, ...) [CSSVC_ENV]"
 	},
 	"sharedSecrets": {
 		"auth": "secret used for authentication [CSSVC_AUTH_SECRET]",
+		"commentEngine": "for sharing comments with NR1 [CSSVC_COMMENT_ENGINE_SECRET]",
+		"commentEngineAlt": "for sharing comments with NR1 during key rotation [CSSVC_COMMENT_ENGINE_ALT_SECRET]",
 		"confirmationCheat": "for bypassing email confirmation, used for unit testing [CSSVC_CONFIRMATION_CHEAT_CODE]",
 		"cookie": "secret used for permalinks [CSSVC_COOKIE_SECRET]",
 		"mail": "requests to the API server fromm the inbound email server provide this secret. This prevents outside clients from simulating inbound emails [CSSVC_INBOUND_EMAIL_SECRET]",
-		"subscriptionCheat": "allows unregistered users to subscribe to their me-channel, for testing emails [CSSVC_SUBSCRIPTION_CHEAT_CODE]",
-		"telemetry": "for accessing the api prior to authentication (pre-auth secret) [CSSVC_PRE_AUTH_SECRET]"
+		"signupFlowJWT": "to enable data exchange with NR1 during signup flow [CSSVC_SIGNUP_FLOW_JWT_SECRET]",
+		"subscriptionCheat": "allows unregistered users to subscribe to their me-channel, for testing emails [CSSVC_SUBSCRIPTION_CHEAT_CODE]"
 	},
 	"ssl": {
 		"cafile": "SSL certificate authority bundle (chain) file [CSSVC_SSL_CAFILE]",
@@ -277,6 +303,7 @@
 	},
 	"storage": {
 		"mongo": {
+			"tlsCAFile": "file containing mongo certificate for TLS connections [CSSVC_MONGO_CLIENT_CERT_FILE]",
 			"url": "mongo connect string [CSSVC_MONGO_URL]"
 		}
 	},
@@ -292,6 +319,9 @@
 			"token": "segment token for clients",
 			"webToken": "segment web token for the web app"
 		}
+	},
+	"universalSecrets": {
+		"telemetry": "for accessing the api prior to authentication (pre-auth secret) [CSSVC_PRE_AUTH_SECRET]"
 	},
 	"uploadEngine": {
 		"s3": {

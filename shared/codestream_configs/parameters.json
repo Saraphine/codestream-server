@@ -164,6 +164,11 @@
 			"desc": "public url to access the API server from beyond",
 			"env": "CS_API_PUBLIC_URL"
 		},
+		"requireTLS12": {
+			"default": false,
+			"desc": "enable TLS 1.2 communications for compliance",
+			"env": "CS_API_TLS_12"
+		},
 		"securePort": {
 			"default": 12078,
 			"desc": "Secure network port for the api service",
@@ -297,15 +302,15 @@
 			"desc": "Frequency email is generated (in millisecs, default = 30 secs)"
 		},
 		"replyToDomain": {
-			"default": "local.codestream.com",
+			"default": "${CSSVC_ENV}.codestream.us",
 			"desc": "email domain for routing replies back to codestream"
 		},
 		"senderEmail": {
-			"default": "local_alerts@codestream.com",
+			"default": "${CSSVC_ENV}_alerts@codestream.us",
 			"desc": "all generated emails will be sent as this user"
 		},
 		"supportEmail": {
-			"default": "local_support@codestream.com",
+			"default": "${CSSVC_ENV}_support@codestream.us",
 			"desc": "support email address to include on email and forms"
 		},
 		"suppressEmails": {
@@ -355,6 +360,26 @@
 				"default": "/v3/mail/send",
 				"desc": "sendgrid api uri"
 			}
+		}
+	},
+	"environmentGroup": {
+		"<envId>": {
+			"name": {
+				"desc": "user-facing environment name"
+			},
+			"publicApiUrl": {
+				"desc": "public url of api"
+			},
+			"shortName": {
+				"desc": "user-facing environment short identifier"
+			}
+		}
+	},
+	"environmentGroupSecrets": {
+		"requestAuth": {
+			"default": "localMutliEnvRequestAuthSecret",
+			"desc": "secret shared by all environments in one environment group used to authenticate inter-environment requests",
+			"env": "CS_API_ENVGRP_SECRETS_REQUESET_AUTH"
 		}
 	},
 	"inboundEmailServer": {
@@ -541,6 +566,35 @@
 				"disabled": {
 					"default": false,
 					"desc": "disable integration"
+				}
+			}
+		},
+		"newrelic": {
+			"<appProvider>": {
+				"accountNumber": {
+					"desc": "NR1 Account Number for webview telemetry",
+					"env": "CSSVC_NEWRELIC_WEBVIEW_ACCOUNT_NUMBER"
+				},
+				"browserIngestKey": {
+					"desc": "NR1 ingest browser key",
+					"env": "CSSVC_NEWRELIC_BROWSER_KEY"
+				},
+				"licenseIngestKey": {
+					"desc": "NR1 ingest license key",
+					"env": "CSSVC_NEWRELIC_LICENSE_KEY"
+				},
+				"telemetryEndpoint": {
+					"default": "staging-collector.newrelic.com",
+					"desc": "Host endpoint passed to APM tracing library",
+					"env": "CSSVC_NEWRELIC_TELEMETRY_ENDPOINT"
+				},
+				"webviewAgentId": {
+					"desc": "NR1 Agent ID for webview telemetry",
+					"env": "CSSVC_NEWRELIC_WEBVIEW_AGENT_ID"
+				},
+				"webviewAppId": {
+					"desc": "NR1 App ID for webview telemetry",
+					"env": "CSSVC_NEWRELIC_WEBVIEW_APP_ID"
 				}
 			}
 		},
@@ -739,6 +793,21 @@
 			"desc": "unique identifier for the onprem installation",
 			"env": "CSSVC_INSTALLATION_ID"
 		},
+		"isProductionCloud": {
+			"default": false,
+			"desc": "identifies customer-facing environments",
+			"env": "CSSVC_IS_PRODUCTION_CLOUD"
+		},
+		"newRelicApiUrl": {
+			"default": "https://staging-api.newrelic.com",
+			"desc": "NR1 user-facing api",
+			"env": "CSSVC_NEW_RELIC_API_URL"
+		},
+		"newRelicLandingServiceUrl": {
+			"default": "https://landing.staging-service.newrelic.com",
+			"desc": "service to decide if user has an account in NR1",
+			"env": "CSSVC_NEW_RELIC_LANDING_SERVICE_URL"
+		},
 		"runTimeEnvironment": {
 			"default": "${CSSVC_ENV}",
 			"desc": "run-time environment (local, onprem, prod, qa, pd, ...)",
@@ -751,6 +820,16 @@
 			"default": "AuthSecret",
 			"desc": "secret used for authentication",
 			"env": "CSSVC_AUTH_SECRET"
+		},
+		"commentEngine": {
+			"default": "commentEngineSecret",
+			"desc": "for sharing comments with NR1",
+			"env": "CSSVC_COMMENT_ENGINE_SECRET"
+		},
+		"commentEngineAlt": {
+			"default": "commentEngineAltSecret",
+			"desc": "for sharing comments with NR1 during key rotation",
+			"env": "CSSVC_COMMENT_ENGINE_ALT_SECRET"
 		},
 		"confirmationCheat": {
 			"default": "ConfirmationCheatCode",
@@ -767,15 +846,15 @@
 			"desc": "requests to the API server fromm the inbound email server provide this secret. This prevents outside clients from simulating inbound emails",
 			"env": "CSSVC_INBOUND_EMAIL_SECRET"
 		},
+		"signupFlowJWT": {
+			"default": "signupFlowJWTSecret",
+			"desc": "to enable data exchange with NR1 during signup flow",
+			"env": "CSSVC_SIGNUP_FLOW_JWT_SECRET"
+		},
 		"subscriptionCheat": {
 			"default": "SubscriptionCheatCode",
 			"desc": "allows unregistered users to subscribe to their me-channel, for testing emails",
 			"env": "CSSVC_SUBSCRIPTION_CHEAT_CODE"
-		},
-		"telemetry": {
-			"default": "PreAuthSecret",
-			"desc": "for accessing the api prior to authentication (pre-auth secret)",
-			"env": "CSSVC_PRE_AUTH_SECRET"
 		}
 	},
 	"ssl": {
@@ -832,6 +911,10 @@
 	},
 	"storage": {
 		"mongo": {
+			"tlsCAFile": {
+				"desc": "file containing mongo certificate for TLS connections",
+				"env": "CSSVC_MONGO_CLIENT_CERT_FILE"
+			},
 			"url": {
 				"default": "mongodb://localhost/codestream",
 				"desc": "mongo connect string",
@@ -862,6 +945,13 @@
 			"webToken": {
 				"desc": "segment web token for the web app"
 			}
+		}
+	},
+	"universalSecrets": {
+		"telemetry": {
+			"default": "PreAuthSecret",
+			"desc": "for accessing the api prior to authentication (pre-auth secret)",
+			"env": "CSSVC_PRE_AUTH_SECRET"
 		}
 	},
 	"uploadEngine": {

@@ -55,13 +55,6 @@ class LinkReviewRequest extends WebRequestBase {
 		return true;
 	}
 
-	decodeLinkId (linkId, pad) {
-		linkId = linkId.replace(/-/g, '+').replace(/_/g, '/');
-		const padding = '='.repeat(pad);
-		linkId = `${linkId}${padding}`;
-		return Buffer.from(linkId, 'base64').toString('hex');
-	}
-
 	async getReviewLink () {
 		// get the link to the review
 		const linkId = this.decodeLinkId(this.request.params.id, 2);
@@ -267,6 +260,9 @@ class LinkReviewRequest extends WebRequestBase {
 		this.creator = await this.data.users.getById(
 			this.review.get('creatorId')
 		);
+		this.company = await this.data.companies.getById(
+			this.team.get('companyId')
+		);
 
 		const username = this.creator && this.creator.get('username');
 		const { authorInitials, emailHash } = this.getAvatar(username);
@@ -308,6 +304,7 @@ class LinkReviewRequest extends WebRequestBase {
 			reviewId: this.review.get('id'),
 			status: status ? status[0].toUpperCase() + status.slice(1) : '',
 			teamName: this.team.get('name'),
+			companyName: this.company.get("name"),
 			launchIde:
 				this.request.query.ide === ''
 					? 'default'
@@ -315,8 +312,7 @@ class LinkReviewRequest extends WebRequestBase {
 			repos: changes.repos,
 			uniqueRepoId: uniqueRepoId,
 			teamId: this.team.id,
-			teamName: this.team.get('name'),
-			changes: changes.files,
+ 			changes: changes.files,
 			queryString: {
 				ide:
 					this.request.query.ide === ''
@@ -362,7 +358,8 @@ class LinkReviewRequest extends WebRequestBase {
 			user: this.user,
 			team: this.team,
 			company: this.company,
-			module: this.module
+			module: this.module,
+			request: this
 		};
 		props.identifyScript = Identify(identifyOptions);
 	}

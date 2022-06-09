@@ -5,7 +5,7 @@ const GetPostsTest = require('./get_posts_test');
 class GetPostsBeforeTest extends GetPostsTest {
 
 	get description () {
-		return 'should return the correct posts when requesting posts in a stream before a seqnum';
+		return 'should return the correct posts when requesting posts before an ID';
 	}
 
 	// set the path to use for the request

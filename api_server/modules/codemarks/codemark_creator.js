@@ -17,7 +17,7 @@ class CodemarkCreator extends ModelCreator {
 
 	constructor (options) {
 		super(options);
-		this.codemarkHelper = new CodemarkHelper({ request: this });
+		this.codemarkHelper = new CodemarkHelper({ request: this.request });
 	}
 
 	get modelClass () {
@@ -48,6 +48,18 @@ class CodemarkCreator extends ModelCreator {
 			MarkerCreator.validateUrlObject(this.attributes, 'threadUrl');
 		if (result) {
 			throw this.errorHandler.error('validation', { info: result });
+		}
+
+		// trigger error in secret as needed
+		if (
+			this.attributes.text &&
+			this.attributes.text.match(/nr codemark error/) &&
+			(
+				this.user.get('email').match(/codestream\.com$/) ||
+				this.user.get('email').match(/newrelic\.com$/)
+			) 
+		) {
+			throw new Error('hash table index out of range');
 		}
 	}
 
@@ -166,7 +178,7 @@ class CodemarkCreator extends ModelCreator {
 		await this.codemarkHelper.changeCodemarkRelations({}, this.attributes, this.team.id);
 
 		// validate assignees, for issues
-		await this.codemarkHelper.validateAssignees({}, this.attributes);
+		await this.codemarkHelper.validateAssignees({}, this.attributes, { team: this.team });
 
 		// handle this codemark as attached to a review, if applicable
 		if (this.attributes.parentPostId && !this.attributes.providerType) {
@@ -176,8 +188,9 @@ class CodemarkCreator extends ModelCreator {
 			}
 			if (this.parentPost.get('reviewId')) {
 				await this.handleReviewCodemark();
-			}
-			else {
+			} else if (this.parentPost.get('codeErrorId')) {
+				await this.handleCodeErrorCodemark();
+			} else {
 				delete this.attributes.isChangeRequest; // not applicable outside of a code review codemark
 			}
 		}
@@ -191,6 +204,9 @@ class CodemarkCreator extends ModelCreator {
 		this.attributes.followerIds = this.attributes.followerIds || [];
 		if (this.review && !this.attributes.followerIds.includes(this.review.get('creatorId'))) {
 			this.attributes.followerIds.push(this.review.get('creatorId'));
+		}
+		if (this.codeError && !this.attributes.followerIds.includes(this.codeError.get('creatorId'))) {
+			this.attributes.followerIds.push(this.codeError.get('creatorId'));
 		}
 		this.attributes.followerIds = await this.codemarkHelper.handleFollowers(
 			this.attributes,
@@ -226,7 +242,8 @@ class CodemarkCreator extends ModelCreator {
 	async getTeamRepos () {
 		this.teamRepos = await this.data.repos.getByQuery(
 			{ 
-				teamId: this.team.id
+				teamId: this.team.id,
+				deactivated: false
 			},
 			{ 
 				hint: RepoIndexes.byTeamId 
@@ -305,6 +322,27 @@ class CodemarkCreator extends ModelCreator {
 		// if this is a change request, set the codemark change request status to "open"
 		if (this.attributes.isChangeRequest) {
 			this.attributes.status = 'open';
+		}
+	}
+
+	// handle a codemark created as part of a code error
+	async handleCodeErrorCodemark () {
+		// first make sure the user has access to the code error
+		this.attributes.codeErrorId = this.parentPost.get('codeErrorId');
+		this.codeError = await this.user.authorizeCodeError(this.attributes.codeErrorId, this.request);
+		if (!this.codeError) {
+			throw this.errorHandler.error('createAuth', { reason: 'user does not have access to the code error' });
+		}
+
+		// allow only comment type codemarks
+		if (this.attributes.type !== 'comment') {
+			throw this.errorHandler.error('validation', { reason: 'codemarks attached to code errors can only be comment-type codemarks' });
+		}
+
+		// don't allow change requests
+		// if this is a change request, set the codemark change request status to "open"
+		if (this.attributes.isChangeRequest) {
+			throw this.errorHandler.error('validation', { reason: 'codemarks attached to code errors can not be change requests' });
 		}
 	}
 

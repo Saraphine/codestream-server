@@ -3,6 +3,7 @@
 
 'use strict';
 
+//const NewRelic = require('newrelic');
 const OutboundEmailServerConfig = require('./config');  // structured config object
 const AWS = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/aws/aws');
 const SQSClient = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/aws/sqs_client');
@@ -21,12 +22,13 @@ const InviteEmailHandler = require('./inviteEmailHandler');
 const ResetPasswordEmailHandler = require('./resetPasswordEmailHandler');
 const TeamCreatedEmailHandler = require('./teamCreatedEmailHandler');
 const WeeklyEmailHandler = require('./weeklyEmailHandler');
+const LoginCodeHandler = require('./loginCodeHandler');
 const TryIndefinitely = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/try_indefinitely');
 const { awaitParallel } = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/await_utils');
 const FS = require('fs');
-const UUID = require('uuid/v4');
+const UUID = require('uuid').v4;
 
-const MONGO_COLLECTIONS = ['users', 'teams', 'repos', 'streams', 'posts', 'codemarks', 'reviews', 'markers'];
+const MONGO_COLLECTIONS = ['users', 'teams', 'companies', 'repos', 'streams', 'posts', 'codemarks', 'reviews', 'codeErrors', 'markers'];
 
 const HANDLERS = {
 	confirm: ConfirmationEmailHandler,
@@ -36,7 +38,8 @@ const HANDLERS = {
 	resetPassword: ResetPasswordEmailHandler,
 	teamCreated: TeamCreatedEmailHandler,
 	notification_v2: EmailNotificationV2Handler,
-	weekly: WeeklyEmailHandler
+	weekly: WeeklyEmailHandler,
+	loginCode: LoginCodeHandler
 };
 
 // The OutboundEmailServer is instantiated via the cluster wrapper.
@@ -175,9 +178,24 @@ class OutboundEmailServer {
 			styles: this.styles,
 			pseudoStyles: this.pseudoStyles,
 			outboundEmailServer: this,
+			//newrelic: NewRelic,
 			requestId
 		};
+
+		// pass trace headers with the message, for distributed tracing of
+		// api server to outbound email
 		await new emailHandlerClass(handlerOptions).handleMessage(message);
+		/*
+		NewRelic.startWebTransaction(message.type, async () => {
+			const transaction = NewRelic.getTransaction();
+			if (message.traceHeaders) {
+				transaction.acceptDistributedTraceHeaders("Queue", message.traceHeaders);
+			}
+			await new emailHandlerClass(handlerOptions).handleMessage(message);
+			transaction.end();
+		});	
+		*/
+
 		this.numOpenTasks--;
 		if (this.numOpenTasks === 0 && this.killReceived) {
 			this.shutdown();

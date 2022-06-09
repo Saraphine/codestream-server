@@ -9,7 +9,6 @@ const ArrayUtilities = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_
 class GetUsersRequest extends GetManyRequest {
 
 	async authorize () {
-		// members of the same team can fetch each other
 		await this.user.authorizeFromTeamId(this.request.query, this);
 	}
 
@@ -26,7 +25,6 @@ class GetUsersRequest extends GetManyRequest {
 
 	// build the query for fetching the users, based on input parameters
 	buildQuery () {
-		// we'll get all the team members
 		let ids = this.team.get('memberIds') || [];
 
 		// can also specify individual IDs as a subset

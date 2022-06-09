@@ -1,7 +1,7 @@
 'use strict';
 
 const ReviewersTest = require('./reviewers_test');
-const ObjectID = require('mongodb').ObjectID;
+const ObjectId = require('mongodb').ObjectId;
 
 class InvalidReviewerTest extends ReviewersTest {
 
@@ -12,13 +12,13 @@ class InvalidReviewerTest extends ReviewersTest {
 	getExpectedError () {
 		return {
 			code: 'RAPI-1005',
-			info: 'must contain only users on the team'
+			reason: 'one or more mentioned users are not on the team'
 		};
 	}
 
 	makePostData (callback) {
 		super.makePostData(() => {
-			this.data.review.reviewers.push(ObjectID());
+			this.data.review.reviewers.push(ObjectId());
 			callback();
 		});
 	}

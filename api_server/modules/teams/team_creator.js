@@ -52,6 +52,7 @@ class TeamCreator extends ModelCreator {
 
 	// validate attributes for the team we are creating
 	async validateAttributes () {
+		this.attributes.isEveryoneTeam = this.isEveryoneTeam; // don't allow to be set by client
 		this.validator = new CodeStreamModelValidator(TeamAttributes);
 		return this.validateName();
 	}
@@ -96,11 +97,13 @@ class TeamCreator extends ModelCreator {
 	// create a company document for the team, or if the company ID is provided, update the company
 	async createOrAttachToCompany () {
 		if (this.attributes.companyId) {
-			return this.attachToCompany();
+			if (!this.dontAttachToCompany) {
+				return this.attachToCompany();
+			} 
 		}
 		else {
 			return this.createCompany();
-		}
+		} 
 	}
 
 	// attach the team to an existing company 
@@ -152,7 +155,8 @@ class TeamCreator extends ModelCreator {
 			isTeamStream: true
 		};
 		this.transforms.createdTeamStream = await new StreamCreator({
-			request: this.request
+			request: this.request,
+			nextSeqNum: this.assumeTeamStreamSeqNum || undefined
 		}).createStream(stream);
 	}
 
@@ -179,7 +183,7 @@ class TeamCreator extends ModelCreator {
 		await super.postSave();
 		await this.updateUser();	// update the current user to indicate they are a member of the team
 		await this.grantUserMessagingPermissions();		// grant permission to the team creator to subscribe to the team broadcaster channel
-		await this.sendTeamCreatedEmail();	// send email to us that a new team has been created
+		//await this.sendTeamCreatedEmail();	// send email to us that a new team has been created
 	}
 
 	// update a user to indicate they have been added to a new team

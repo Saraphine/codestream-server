@@ -15,6 +15,11 @@ const ROUTES = [
 		method: 'delete',
 		path: 'no-auth/--clear-mock-cache',
 		func: 'handleClearMockCache'
+	},
+	{
+		method: 'delete',
+		path: 'no-auth/--delete-test-data',
+		func: 'handleDeleteTestData'
 	}
 ];
 
@@ -41,7 +46,8 @@ class Mongo extends APIServerModule {
 				mockMode: this.api.config.apiServer.mockMode,
 				logger: this.api.logger,
 				queryLogging: this.api.config.storage.mongo.queryLogging,
-				collections: this.api.serverOptions.rawCollections
+				collections: this.api.serverOptions.rawCollections,
+				hintsRequired: this.api.config.storage.mongo.hintsRequired
 			});
 			this.mongoClient = await this.mongoClientFactory.openMongoClient(this.api.config.storage.mongo);
 			return { mongoClient: this.mongoClient };
@@ -63,6 +69,18 @@ class Mongo extends APIServerModule {
 		else {
 			response.status(401).send('NOT IN MOCK MODE');
 		}
+	}
+
+	handleDeleteTestData (request, response) {
+		(async function() {
+			if (request.headers['x-cs-delete-cheat'] !== this.api.config.sharedSecrets.subscriptionCheat) {
+				response.status(401).send('UNAUTHORIZED');
+			}
+			await Promise.all(Object.keys(this.mongoClient.mongoCollections).map(async collection => {
+				await this.mongoClient.mongoCollections[collection].deleteByQuery({_forTesting:true}, {overrideHintRequired:true});
+			}));
+			response.status(200).send();
+		}).call(this);
 	}
 }
 

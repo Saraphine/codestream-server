@@ -55,13 +55,6 @@ class LinkCodemarkRequest extends WebRequestBase {
 		return true;
 	}
 
-	decodeLinkId (linkId, pad) {
-		linkId = linkId.replace(/-/g, '+').replace(/_/g, '/');
-		const padding = '='.repeat(pad);
-		linkId = `${linkId}${padding}`;
-		return Buffer.from(linkId, 'base64').toString('hex');
-	}
-
 	async getCodemarkLink () {
 		// check if the user is on the indicated team
 		if (!this.isPublic && !this.user.hasTeam(this.teamId)) {
@@ -378,6 +371,9 @@ class LinkCodemarkRequest extends WebRequestBase {
 		this.creator = await this.data.users.getById(
 			this.codemark.get('creatorId')
 		);
+		this.company = await this.data.companies.getById(
+			this.team.get('companyId')
+		);
 
 		const username = this.creator && this.creator.get('username');
 		const showComment = username && !this.codemark.get('invisible');
@@ -434,9 +430,10 @@ class LinkCodemarkRequest extends WebRequestBase {
 				uniqueFileName = fileNames[0];
 			}
 		}
-		const templateProps = {
+ 		const templateProps = {
 			codemarkId: this.codemark.get('id'),
 			teamName: this.team.get('name'),
+			companyName: this.company.get("name"),
 			launchIde:
 				this.request.query.ide === ''
 					? 'default'
@@ -596,7 +593,8 @@ class LinkCodemarkRequest extends WebRequestBase {
 			user: this.user,
 			team: this.team,
 			company: this.company,
-			module: this.module
+			module: this.module,
+			request: this
 		};
 		props.identifyScript = Identify(identifyOptions);
 	}

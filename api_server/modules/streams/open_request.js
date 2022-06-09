@@ -1,4 +1,4 @@
-// provides a request class for handling the PUT /open request,
+// provides a request class for handling the PUT /streams/open request,
 // for users to "open" previously closed streams (for themselves) 
 
 'use strict';
@@ -10,6 +10,9 @@ class OpenRequest extends RestfulRequest {
 
 	// authorize the current user against the request
 	async authorize () {
+		// opening of streams is deprecated
+		throw this.errorHandler.error('deprecated');
+
 		// get the stream
 		this.stream = await this.data.streams.getById(this.request.params.id);
 		if (!this.stream) {

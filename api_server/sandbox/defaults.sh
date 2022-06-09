@@ -14,6 +14,7 @@ else
 	export CSSVC_BACKEND_ROOT=$CS_API_REPO_ROOT
 fi
 . $CSSVC_BACKEND_ROOT/sandbox/shared/sandbox_config.sh || return 1
+export CS_API_SHORT_NAME=api
 
 # common sandbox initialization routines
 sbcfg_initialize CS_API
@@ -26,7 +27,7 @@ sbcfg_initialize CS_API
 # local development sets the callback env so external requests can be routed
 # through the network proxy and back to your local VPN IP (codestream version of
 # https://ngrok.com)
-if [ "$CSSVC_ENV" = "local"  -a  -z "$CS_API_CALLBACK_ENV" ]; then
+if sandutil_is_local_environment && [ -z "$CS_API_CALLBACK_ENV" ]; then
 	TUNNEL_IP=$(sandutil_get_tunnel_ip fallbackLocalIp,useHyphens)
 	[ -n "$TUNNEL_IP" ] && export CS_API_CALLBACK_ENV="local-$TUNNEL_IP" || echo "could not detect your vpn ip - callbacks won't work" >&2
 	[ -n "$CS_API_CALLBACK_ENV" ] && echo "CS_API_CALLBACK_ENV=$CS_API_CALLBACK_ENV"

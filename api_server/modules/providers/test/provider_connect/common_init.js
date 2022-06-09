@@ -3,7 +3,7 @@
 'use strict';
 
 const BoundAsync = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/bound_async');
-const UUID = require('uuid/v4');
+const UUID = require('uuid').v4;
 const RandomString = require('randomstring');
 
 class CommonInit {
@@ -134,7 +134,7 @@ class CommonInit {
 		if (!this.wantPreExistingUnconnectedTeam) {
 			return callback();
 		}
-		this.teamFactory.createRandomTeam(
+		this.companyFactory.createRandomCompany(
 			(error, response) => {
 				if (error) { return callback(error); }
 				this.preExistingUnconnectedTeam = response.team;

@@ -2,7 +2,7 @@
 
 const CodeStreamAPITest = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/lib/test_base/codestream_api_test');
 const Assert = require('assert');
-const UUID = require('uuid/v4');
+const UUID = require('uuid').v4;
 const BoundAsync = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/bound_async');
 
 class GetSessionsTest extends CodeStreamAPITest {
@@ -90,7 +90,7 @@ class GetSessionsTest extends CodeStreamAPITest {
 		// since the server sets a timestamp, we'll validate those, and then add them
 		// to the response data for quick validation of the whole
 		Object.keys(this.expectData).forEach(sessionId => {
-			Assert(sessions[sessionId].updatedAt > this.modifiedAfter, 'updatedAt timestamp not correct set');
+			Assert(sessions[sessionId].updatedAt >= this.modifiedAfter, 'updatedAt timestamp not correct set');
 			this.expectData[sessionId].updatedAt = sessions[sessionId].updatedAt;
 		});
 		// validate that we got back the data we wrote

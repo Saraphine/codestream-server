@@ -5,6 +5,7 @@
 const RestfulRequest = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/lib/util/restful/restful_request');
 const PostPublisher = require('./post_publisher');
 const ModelSaver = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/lib/util/restful/model_saver');
+const StreamIndexes = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/streams/indexes');
 
 class ReactRequest extends RestfulRequest {
 
@@ -79,15 +80,11 @@ class ReactRequest extends RestfulRequest {
 
 	// publish the update to the appropriate broadcaster channel
 	async publishUpdate () {
-		const stream = await this.data.streams.getById(this.post.get('streamId'));
-		if (!stream) {
-			return;	// failsafe, should never really happen
-		}
 		await new PostPublisher({
 			data: this.responseData,
 			request: this,
 			broadcaster: this.api.services.broadcaster,
-			stream: stream.attributes
+			teamId: this.post.get('teamId')
 		}).publishPost();
 	}
 

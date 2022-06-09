@@ -46,8 +46,8 @@ class ConfirmRequest extends RestfulRequest {
 			'body',
 			{
 				optional: {
-					string: ['email', 'password', 'username', 'confirmationCode', 'token'],
-					number: ['expiresIn']
+					string: ['email', 'password', 'username', 'confirmationCode', 'token', 'environment'],
+					number: ['expiresIn', 'nrAccountId']
 				}
 			}
 		);
@@ -171,10 +171,16 @@ class ConfirmRequest extends RestfulRequest {
 
 	// call out to a confirmation helper, to finish the confirmation
 	async doConfirm () {
+		const nrAccountId = this.request.body.nrAccountId;
+		delete this.request.body.nrAccountId;
+		const environment = this.request.body.environment;
+		delete this.request.body.environment;
 		this.responseData = await new ConfirmHelper({
 			request: this,
 			user: this.user,
-			loginType: this.loginType
+			loginType: this.loginType,
+			nrAccountId,
+			environment
 		}).confirm(this.request.body);
 	}
 

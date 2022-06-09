@@ -1,5 +1,225 @@
 # Change Log
 
+## [13.0.0] - 2022-5-31
+
+### Changed 
+
+- Clarify button copy when signing in via the web
+
+## [12.0.13] - 2022-5-12
+
+### Added
+
+- Backend support for New Relic instrumentation
+
+## [12.0.12] - 2022-4-28
+
+### Fixed
+
+- Fixes a broken animated gif on the redirect page when opening an error from New Relic
+
+## [12.0.11] - 2022-4-27
+
+### Added
+
+- Adds unsubscribe links to notification an feedback request reminder emails
+
+### Changed
+
+- Changed name of Clubhouse integration to Shortcut
+
+## [12.0.10] - 2022-4-11
+
+### Fixed
+
+- Fixes an issue where customers in the EU trying to open errors would get a message about the error being owned by a different CodeStream organization
+
+## [12.0.9] - 2022-4-7
+
+### Added
+
+- Adds additional backend support for multi-region capabilities
+
+## [12.0.8] - 2022-4-7
+
+### Added
+
+- Adds additional backend support for multi-region capabilities
+
+## [12.0.7] - 2022-3-23
+
+### Added
+
+- Adds backend support for multi-region capabilities
+
+### Changed
+
+- Bumps minimum required extension version to 12.13.0
+
+## [12.0.6] - 2022-3-7
+
+### Fixed
+
+- Fixes an issue with telemetry for anonymous users
+
+## [12.0.5] - 2022-3-3
+
+### Added
+
+- Adds password-reset functionality to the web login form
+
+## [12.0.4] - 2022-2-16
+
+### Changed
+
+- Remove Team section of weekly activity emails when org has more than 25 members
+- After signing in on the web, user is now brought to the given codemark/feedback request/permalink when appropriate
+
+## [12.0.3] - 2022-2-5
+
+### Changed
+
+- Replace video on open-in-IDE redirect page from New Relic with animated gif
+
+## [12.0.2] - 2022-1-31
+
+### Changed
+
+- Stop trying to auto-redirect users into VS Code when opening an error from New Relic
+
+## [12.0.1] - 2022-1-25
+
+### Fixed
+
+- Fixes an issue connecting to New Relic after signing up with a New Relic api key
+
+## [12.0.0] - 2022-1-24
+
+### Fixed
+
+- Fixes an issue preventing authentication via GitHub
+
+## [11.0.29] - 2022-1-24
+
+### Added
+
+- Adds backend support for being able to sign into CodeStream with a code sent via email
+- Adds backend support for being able to sign up for CodeStream with a New Relic One user api key
+
+## [11.0.28] - 2022-1-4
+
+### Changed
+
+- Updated UI for web page that redirects users from New Relic into the IDE
+- Prevent access to error groups that the user's api key doesn't have access to 
+- Attempt to automatically redirect user to VS Code when doing an Open-in-IDE
+
+### Fixed
+
+- Fixes an issue creating a PR across forks when there are a larger number of forks
+
+## [11.0.27] - 2021-12-22
+
+### Changed
+
+- Telemetry update for the open-in-IDE redirect page 
+
+## [11.0.26] - 2021-12-21
+
+### Changed
+
+- Security work around access to error groups 
+
+## [11.0.25] - 2021-12-13
+
+### Changed
+
+- Better telemetry from apiweb to the extension
+
+## [11.0.24] - 2021-11-30
+
+### Fixed
+
+- Fixes an issue with public primary email not always being sent over from GitLab and preventing signup
+
+## [11.0.23] - 2021-11-23
+
+### Changed
+
+- Always show IDE-specific instructions on redirect web page
+
+## [11.0.22] - 2021-11-15
+
+### Changed
+
+- Improved UX when redirecting New Relic users into IDE from an error
+
+## [11.0.21] - 2021-11-5
+
+### Fixed
+
+- Fixes an issue with replies from Slack
+
+## [11.0.20] - 2021-11-4
+
+### Fixed
+
+- Fixes an issue with domain-based joining after authenticating via a code host
+
+## [11.0.18] - 2021-10-21
+
+### Fixed
+
+- Fixes a post fetching issue
+
+## [11.0.17] - 2021-10-20
+
+### Added
+
+- Backend support for new integration
+
+## [11.0.16] - 2021-10-19
+
+### Added
+
+- Backend support for new integration
+
+## [11.0.15] - 2021-10-7
+
+### Changed
+
+- Fixes an issue where users couldn't create an organization
+
+## [11.0.14] - 2021-10-7
+
+### Changed
+
+- Set minimum required version of the CodeStream extensions to 11.1.0
+
+## [11.0.13] - 2021-10-7
+
+### Changed
+
+- Backend changes for making CodeStream organization-centric
+
+## [11.0.12] - 2021-9-18
+
+### Changed
+
+- Backend changes for EAP
+
+## [11.0.11] - 2021-8-29
+
+### Changed
+
+- Set minimum required version of the JetBrains extension to 11.0.13
+
+## [11.0.10] - 2021-8-27
+
+### Changed
+
+- Set minimum required versions of the VS and VS Code extensions to 11.0.14
+
 ## [11.0.9] - 2021-8-24
 
 ### Fixed

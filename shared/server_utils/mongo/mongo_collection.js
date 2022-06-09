@@ -3,7 +3,7 @@
 
 'use strict';
 
-const ObjectID = require('mongodb').ObjectID;
+const ObjectId = require('mongodb').ObjectId;
 const ErrorHandler = require('../error_handler');
 const Errors = require('./errors');
 const DeepClone = require('../deep_clone');
@@ -270,7 +270,7 @@ class MongoCollection {
 			delete document.id;
 		}
 		else {
-			document._id = ObjectID();
+			document._id = ObjectId();
 		}
 		if (document.version === undefined && !options.noVersion) {
 			document.version = 1;
@@ -298,8 +298,8 @@ class MongoCollection {
 			documents,
 			options
 		);
-		// to return the documents, turn any IDs we see into strings
-		return await this._idStringify(result.ops);
+		// can't return the documents, can only return their IDs, per driver 4.x
+		return Object.values(result.insertedIds).map(id => id.toString());
 	}
 
 	// update a document
@@ -488,6 +488,16 @@ class MongoCollection {
 		);
 	}
 
+	// count documents matching query
+	async countByQuery (query, options = {}) {
+		query = this._normalizeQueryOptions(query, options, {});
+		return await this._runQuery(
+			'countDocuments',
+			query,
+			options
+		);
+	}
+	
 	// helper JSON.stringify to clean up whitespace
 	_jsonStringify (json) {
 		return JSON.stringify(json).
@@ -544,7 +554,7 @@ class MongoCollection {
 	// return a mongo ID, given a mongo ID or a string representation
 	objectIdSafe (id) {
 		try {
-			id = ObjectID(id);
+			id = ObjectId(id);
 		}
 		catch(error) {
 			return null;
@@ -563,7 +573,11 @@ class MongoCollection {
 
 	// create a new ID
 	createId () {
-		return ObjectID();
+		if (this.options.mockMode) {
+			return this.dbCollection.mockObjectId();
+		} else {
+			return ObjectId();
+		}
 	}
 
 	// look for IDs or arrays of IDs in an object and stringify them, so the application layer

@@ -6,7 +6,12 @@ class PasswordUpdatedRequest extends WebRequestBase {
 	async authorize() {
 	}
 	async process() {
-		return super.render('password_updated');
+		const email = this.request.query.email ? encodeURIComponent(this.request.query.email) : '';
+
+		return super.render('password_updated', {
+			email
+		});
+
 	}
 }
 

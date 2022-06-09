@@ -49,7 +49,11 @@ class WeeklyEmailHandler {
 			this.warn(`Team not found: ${this.message.teamId}`);
 			return;
 		}
-
+		this.teamData.company = await this.data.companies.getById(team.companyId);
+		if (!this.teamData.company) {
+			this.warn(`Company not found: ${team.companyId}`);
+		}
+		
 		// check for deactivate or inactive teams
 		const threeWeeksAgo = Date.now() - 3 * ONE_WEEK;
 		if (team.deactivated) {
@@ -113,6 +117,10 @@ class WeeklyEmailHandler {
 		} else if ((team.removedMemberIds || []).includes(user.id)) {
 			// NOTE: this will not preclude the user receiving an email for another team, when that team runs
 			this.log(`User ${user.id} has been removed from team ${team.id} so will not receive a weekly email for this team`);
+			return false;
+		} else if ((team.foreignMemberIds || []).includes(user.id)) {
+			// NOTE: this will not preclude the user receiving an email for another team, when that team runs
+			this.log(`User ${user.id} is foreign to team ${team.id} so will not receive a weekly email for this team`);
 			return false;
 		} else if (lastEmailSentAt > Date.now() - this.message.userCutoffTime) {
 			this.log(`User ${user.id}:${user.email} has received a weekly email within ${this.message.userCutoffTime}ms, so will not receive another`);

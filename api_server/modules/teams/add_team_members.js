@@ -36,12 +36,14 @@ class AddTeamMembers  {
 
 	// add users to the team by adding IDs to the memberIds array
 	async addToTeam () {
+		const addedMemberIds = this.addUsers.map(user => user.id);
 		const op = { 
 			$addToSet: { 
-				memberIds: this.addUsers.map(user => user.id) 
+				memberIds: addedMemberIds
 			},
 			$pull: {
-				removedMemberIds: this.addUsers.map(user => user.id)
+				removedMemberIds: addedMemberIds,
+				foreignMemberIds: addedMemberIds
 			},
 			$set: {
 				modifiedAt: Date.now()
@@ -76,6 +78,8 @@ class AddTeamMembers  {
 		// handle the rare case where a registered user isn't on a team yet,
 		// and therefore they don't yet have a joinMethod ... we'll update
 		// the joinMethod to "Added to Team" here
+		//
+		// OR: the user is joining a team (based on domain-based joining)
 		if (
 			user.get('isRegistered') && 
 			(
@@ -84,13 +88,16 @@ class AddTeamMembers  {
 			)
 		) {
 			Object.assign(op.$set, {
-				joinMethod: 'Added to Team',
-				primaryReferral: 'internal'
+				joinMethod: this.joinMethod || 'Added to Team',
+				primaryReferral: this.joinMethod ? 'external' : 'internal'
 			});
-			const creatorId = this.team.get('creatorId');
-			const teamCreator = await this.data.users.getById(creatorId);
-			if (teamCreator && teamCreator.get('originTeamId')) {
-				op.$set.originTeamId = teamCreator.get('originTeamId');
+			if (!this.joinMethod) {
+				// this only gets set when a user is invited
+				const creatorId = this.team.get('creatorId');
+				const teamCreator = await this.data.users.getById(creatorId);
+				if (teamCreator && teamCreator.get('originTeamId')) {
+					op.$set.originTeamId = teamCreator.get('originTeamId');
+				}
 			}
 		}
 

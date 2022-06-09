@@ -71,6 +71,8 @@ class User extends CodeStreamModel {
 			return await this.authorizeCodemark(id, request, options);
 		case 'review': 
 			return await this.authorizeReview(id, request, options);
+		case 'codeError': 
+			return await this.authorizeCodeError(id, request, options);
 		case 'user':
 			return await this.authorizeUser(id, request, options);
 		default:
@@ -111,8 +113,11 @@ class User extends CodeStreamModel {
 		if (!stream) {
 			throw request.errorHandler.error('notFound', { info: 'stream' });
 		}
-		if (
+		if (stream.get('type') === 'object' && !stream.get('teamId')) {
+			return false;
+		} else if (
 			stream.get('type') !== 'file' &&
+			stream.get('type') !== 'object' && 
 			!stream.get('isTeamStream') && 
 			!stream.get('memberIds').includes(this.id)
 		) {
@@ -215,6 +220,17 @@ class User extends CodeStreamModel {
 		return authorized ? review : false;
 	}
 
+	// authorize the user to "access" a code error model, based on ID
+	async authorizeCodeError (id, request, options) {
+		const codeError = await request.data.codeErrors.getById(id, options);
+		if (!codeError) {
+			throw request.errorHandler.error('notFound', { info: 'code error' });
+		}
+		// to access a code error, the user must be on the team that owns it
+		const authorized = codeError.get('teamId') && this.hasTeam(codeError.get('teamId'));
+		return authorized ? codeError : false;
+	}
+
 	// authorize the user to "access" a user model, based on ID
 	async authorizeUser (id, request) {
 		// user can always access their own me-object
@@ -227,12 +243,14 @@ class User extends CodeStreamModel {
 
 		// user are able to access any other user that is a member of their teams,
 		// this includes members that have been removed and are in the removedMemberIds array for that team
+		// also includes members that are "foreign"
 		const teams = await request.data.teams.getByIds(request.user.get('teamIds') || []);
-		const authorized = teams.find(team => {
+		let authorized = teams.find(team => {
 			// the requesting user must be a member of this team (not a removed member)
 			if (
 				!(team.get('memberIds') || []).includes(request.user.id) ||
-				(team.get('removedMemberIds') || []).includes(request.user.id)
+				(team.get('removedMemberIds') || []).includes(request.user.id) ||
+				(team.get('foreignMemberIds') || []).includes(request.user.id)
 			) {
 				return false;
 			}

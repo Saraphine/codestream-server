@@ -10,10 +10,13 @@ const MustBeDirectTest = require('./must_be_direct_test');
 const MessageToUserTest = require('./message_to_user_test');
 const GetStreamTest = require('./get_stream_test');
 const GetStreamsTest = require('./get_streams_test');
+const OpenStreamDeprecatedTest = require('./open_stream_deprecated_test');
 
 class OpenRequestTester {
 
 	openTest () {
+		new OpenStreamDeprecatedTest().test();
+		/*
 		new OpenTest().test();
 		new ACLTest().test();
 		new ACLTeamTest().test();
@@ -22,6 +25,7 @@ class OpenRequestTester {
 		new MessageToUserTest().test();
 		new GetStreamTest().test();
 		new GetStreamsTest().test();
+		*/
 	}
 }
 

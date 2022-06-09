@@ -10,7 +10,7 @@ class GetPostsBeforeAfterTest extends GetPostsTest {
 	}
 
 	get description () {
-		return 'should return the correct posts when requesting posts in a stream with a seqnum range';
+		return 'should return the correct posts when requesting posts within an ID range';
 	}
 
 	// set the path to use for the request

@@ -5,8 +5,7 @@
 const GetManyRequest = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/lib/util/restful/get_many_request');
 const Indexes = require('./indexes');
 const PostErrors = require('./errors.js');
-const { awaitParallel } = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/await_utils');
-const StreamIndexes = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/streams/indexes');
+const ArrayUtilities = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/array_utilities');
 
 // these parameters essentially get passed verbatim to the query
 const BASIC_QUERY_PARAMETERS = [
@@ -36,79 +35,55 @@ class GetPostsRequest extends GetManyRequest {
 
 	// authorize the request for the current user
 	async authorize () {
-		let info;
-		if (this.request.query.streamId) {
-			info = await this.user.authorizeFromTeamIdAndStreamId(
-				this.request.query,
-				this
-			);
-			Object.assign(this, info);
-		}
-		else {
-			await this.user.authorizeFromTeamId(
-				this.request.query,
-				this
-			);
-		}
-	}
-
-	// called before the actual fetch operation, here we fetch the streams the user is 
-	// a member of if posts for a particular stream are not being fetched
-	async preQueryHook () {
-		// we'll give the caller the benefit of figuring out the stream ID if they're looking for replies to a post
-		if (this.request.query.parentPostId && !this.request.query.streamId) {
+		let streamId;
+		if (this.request.query.parentPostId) {
 			const parentPost = await this.data.posts.getById(this.request.query.parentPostId.toLowerCase());
-			if (parentPost) {
-				this.request.query.streamId = parentPost.get('streamId');
+			if (!parentPost) {
+				throw this.errorHandler.error('notFound', { info: 'parent post' });
+			}
+			streamId = parentPost.get('streamId');
+		}
+		if (this.request.query.streamId) {
+			if (streamId && this.request.query.streamId.toLowerCase() !== streamId) {
+				throw this.errorHandler.error('badQuery', { reason: 'streamId must match the stream of parentPostId' });
+			}
+			streamId = this.request.query.streamId.toLowerCase();
+		}
+
+		if (streamId) {
+			this.stream = await this.user.authorizeStream(streamId, this);
+			if (!this.stream) {
+				throw this.errorHandler.error('readAuth', { reason: 'user does not have access to this stream' });
 			}
 		}
-		if (this.request.query.streamId) { return; }
-		
-		// if no stream ID is given, we'll fetch for all streams the user is a member of...
-		// this includes any "team streams" and channels/DMs they are explicit members of
-		this.byId = true;
-		const teamId = this.request.query.teamId.toLowerCase();
-		const results = await awaitParallel([
-			async () => {
-				return this.data.streams.getByQuery(
-					{
-						teamId,
-						memberIds: this.user.id
-					},
-					{
-						hint: StreamIndexes.byMembers,
-						fields: ['id'],
-						noCache: true
-					}
-				);
-			},
-			async () => {
-				return this.data.streams.getByQuery(
-					{
-						teamId,
-						isTeamStream: true
-					},
-					{
-						hint: StreamIndexes.byIsTeamStream,
-						fields: ['id'],
-						noCache: true
-					}
+
+		if (this.request.query.teamId) {
+			if (this.stream) {
+				if (this.request.query.teamId.toLowerCase() !== this.stream.get('teamId')) {
+					throw this.errorHandler.error('badQuery', { reason: 'teamId must match the team of the stream' });
+				}
+			} else {
+				return await this.user.authorizeFromTeamId(
+					this.request.query,
+					this
 				);
 			}
-		], this);
-		this.streamIds = [...results[0], ...results[1]].map(stream => stream.id);
+		} else if (!this.stream) {
+			throw this.errorHandler.error('parameterRequired', { info: 'teamId, streamId, or parentPostId' });
+		}
+
+		if (this.request.query.parentPostId) {
+			delete this.request.query.streamId;
+			delete this.request.query.teamId;
+		} else if (this.request.query.streamId) {
+			delete this.request.query.teamId;
+		}
 	}
 
 	// build the query to use for fetching posts (used by the base class GetManyRequest)
 	buildQuery () {
 		const query = {};
-
-		// if no stream ID given, then query on all streams the user is a member of,
-		// as determined in preQueryHook(), above
-		if (!this.request.query.streamId) {
-			query.streamId = { $in: this.streamIds };
-		}
-
+		
 		// process each parameter in turn
 		for (let parameter in this.request.query || {}) {
 			const value = decodeURIComponent(this.request.query[parameter]);
@@ -122,6 +97,7 @@ class GetPostsRequest extends GetManyRequest {
 		if (Object.keys(query).length === 0) {
 			return null;
 		}
+
 		return query;
 	}
 
@@ -130,6 +106,7 @@ class GetPostsRequest extends GetManyRequest {
 		if (BASIC_QUERY_PARAMETERS.includes(parameter)) {
 			// basic query parameters go directly into the query (but lowercase)
 			query[parameter] = value.toLowerCase();
+			this.byId = parameter !== 'streamId'; // stream-based fetches are on seqNum, others are on id
 		}
 		else if (parameter === 'ids') {
 			// fetch by array of IDs
@@ -156,9 +133,7 @@ class GetPostsRequest extends GetManyRequest {
 		else if (this.byId) {
 			// sorting by ID, not seqnum, only when not fetching by stream
 			this.relationals[parameter] = value;
-		}
-		else 
-		{
+		} else {
 			const seqNum = parseInt(value, 10);
 			if (isNaN(seqNum) || seqNum.toString() !== value) {
 				return 'invalid seqnum: ' + value;
@@ -233,7 +208,7 @@ class GetPostsRequest extends GetManyRequest {
 	// set the indexing hint to use in the fetch query
 	setHint () {
 		if (this.byId) {
-			return Indexes.byId;
+			return Indexes.byTeamId;
 		}
 		else if (this.request.query.parentPostId) {
 			return Indexes.byParentPostId;
@@ -248,6 +223,7 @@ class GetPostsRequest extends GetManyRequest {
 		await super.process();	// do the usual "get-many" processing
 		await this.getCodemarks();	// get associated codemarks, as needed
 		await this.getReviews();	// get associated reviews, as needed
+		await this.getCodeErrors();	// get associated code errors, as needed
 		await this.getMarkers();	// get associated markers, as needed
 		await this.getReplies();	// get nested replies, if this is a query for replies
 
@@ -289,6 +265,21 @@ class GetPostsRequest extends GetManyRequest {
 		this.responseData.reviews = this.reviews.map(review => review.getSanitizedObject({ request: this }));
 	}
 
+	// get the code errors associated with the fetched posts, as needed
+	async getCodeErrors () {
+		const codeErrorIds = this.models.reduce((codeErrorIds, post) => {
+			if (post.get('codeErrorId')) {
+				codeErrorIds.push(post.get('codeErrorId'));
+			}
+			return codeErrorIds;
+		}, []);
+		if (codeErrorIds.length === 0) {
+			return;
+		}
+		this.codeErrors = await this.data.codeErrors.getByIds(codeErrorIds);
+		this.responseData.codeErrors = this.codeErrors.map(codeError => codeError.getSanitizedObject({ request: this }));
+	}
+
 	// get the markers associated with the fetched posts, as needed
 	async getMarkers () {
 		if (!this.codemarks && !this.reviews) { return; }
@@ -314,8 +305,8 @@ class GetPostsRequest extends GetManyRequest {
 		let replies = await this.data.posts.getByQuery(
 			{
 				parentPostId: this.data.posts.inQuery(postIds),
-				streamId: this.request.query.streamId.toLowerCase(),
-				teamId: this.request.query.teamId.toLowerCase()
+				streamId: this.stream.id,
+				teamId: this.stream.get('teamId')
 			},
 			{
 				hint: Indexes.byParentPostId
@@ -336,12 +327,7 @@ class GetPostsRequest extends GetManyRequest {
 				}
 			}
 			else {
-				if ((this.request.query.sort || '').toLowerCase() === 'asc') {
-					return a.seqNum - b.seqNum;
-				}
-				else {
-					return b.seqNum - a.seqNum;
-				}
+				throw 'queries for replies by seqNum are deprecated';
 			}
 		});
 	}
@@ -366,6 +352,7 @@ class GetPostsRequest extends GetManyRequest {
 			posts: '<@@#post objects#codemark@@ fetched>',
 			codemarks: '<associated @@#codemark objects#codemark@@>',
 			reviews: '<associated @@#review objects#review@@>',
+			codeErrors: '<associated @@#codeError objects#code errors@@>',
 			markers: '<associated @@#markers#markers@@>',
 			more: '<will be set to true if more posts are available, see the description, above>'
 		});

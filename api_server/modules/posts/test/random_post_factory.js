@@ -11,13 +11,24 @@ class RandomPostFactory {
 	}
 
 	// create the post by submitting a request to the server
-	createPost (data, token, callback) {
+	createPost (data, options, callback) {
 		this.lastInputData = data;
+		const { token, wantCodeError } = options;
+		let requestOptions;
+		if (wantCodeError) {
+			// allow to create code error without checking New Relic account access
+			requestOptions = { 
+				headers: {
+					'X-CS-NewRelic-Secret': this.apiRequester.apiConfig.sharedSecrets.commentEngine
+				}
+			};
+		}
 		this.apiRequester.doApiRequest({
 			method: 'post',
 			path: '/posts',
-			data: data,
-			token: token
+			data,
+			token,
+			requestOptions
 		}, callback);
 	}
 
@@ -46,9 +57,15 @@ class RandomPostFactory {
 		if (options.wantReview) {
 			data.review = this.reviewFactory.getRandomReviewData(options);
 		}
+		if (options.wantCodeError) {
+			data.codeError = this.codeErrorFactory.getRandomCodeErrorData(options);
+		}
 		if (options.parentPostId) {
 			// for replies
 			data.parentPostId = options.parentPostId;
+		}
+		if (options.mentionedUserIds) {
+			data.mentionedUserIds = [...options.mentionedUserIds];
 		}
 		data.text = this.randomText();
 		callback(null, data);
@@ -59,7 +76,7 @@ class RandomPostFactory {
 		this.getRandomPostData(
 			(error, data) => {
 				if (error) { return callback(error); }
-				this.createPost(data, options.token, callback);
+				this.createPost(data, options, callback);
 			},
 			options
 		);

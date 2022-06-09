@@ -4,12 +4,18 @@
 
 const InitialDataFetcher = require('./initial_data_fetcher');
 const UserSubscriptionGranter = require('./user_subscription_granter');
-const UUID = require('uuid/v4');
+const UUID = require('uuid').v4;
 const ProviderFetcher = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/providers/provider_fetcher');
-const APICapabilities = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/etc/capabilities');
+const DetermineCapabilities = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/versioner/determine_capabilities');
 const VersionErrors = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/versioner/errors');
 const { awaitParallel } = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/await_utils');
 const Fetch = require('node-fetch');
+const EmailUtilities = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/email_utilities');
+const CompanyIndexes = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/companies/indexes');
+const WebmailCompanies = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/etc/webmail_companies');
+const NewRelicOrgIndexes = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/newrelic_comments/new_relic_org_indexes');
+const GetEligibleJoinCompanies = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/companies/get_eligible_join_companies');
+const AccessTokenCreator = require('./access_token_creator');
 
 class LoginHelper {
 
@@ -31,11 +37,15 @@ class LoginHelper {
 
 		await awaitParallel([
 			this.getInitialData,
+			this.getForeignCompanies,
 			this.generateAccessToken
 		], this);
 		this.grantSubscriptionPermissions(); // NOTE - no await here, this can run in parallel
 		await this.updateLastLogin();
+		await this.resetLoginCode();
 		this.getThirdPartyProviders();
+		await this.getEligibleJoinCompanies();	// get companies the user is not a member of, but is eligible to join
+		await this.getAccountIsConnected();		// get whether this user's account is connected to a CS company
 		await this.formResponse();
 		return this.responseData;
 	}
@@ -87,6 +97,22 @@ class LoginHelper {
 		this.initialData = await this.initialDataFetcher.fetchInitialData();
 	}
 
+	// get any companies the user is a member of (by email) in foreign environments,
+	// to display in the organization switcher
+	async getForeignCompanies () {
+		if (this.request.request.headers['x-cs-block-xenv']) {
+			this.request.log('Not fetching foreign companies, blocked by header');
+			return [];
+		}
+
+		const companies = await this.request.api.services.environmentManager
+			.fetchUserCompaniesFromAllEnvironments(this.user.get('email'));
+		this.foreignCompanies = companies.map(company => {
+			company.company.host = company.host;
+			return company.company;
+		});
+	}
+
 	// generate an access token for this login if needed
 	async generateAccessToken (force) {
 		let set = null;
@@ -122,15 +148,11 @@ class LoginHelper {
 				!minIssuance ||
 				minIssuance > (tokenPayload.iat * 1000)
 			) {
-				this.accessToken = this.api.services.tokenHandler.generate({ uid: this.user.id });
-				const minIssuance = this.api.services.tokenHandler.decode(this.accessToken).iat * 1000;
+				const { token, minIssuance } = AccessTokenCreator(this.request, this.user.id);
+				this.accessToken = token;
 				set = set || {};
-				set[`accessTokens.${this.loginType}`] = {
-					token: this.accessToken,
-					minIssuance: minIssuance
-				};
+				set[`accessTokens.${this.loginType}`] = { token, minIssuance };
 			}
-
 			if (set) {
 				await this.request.data.users.applyOpById(this.user.id, { $set: set });
 			}
@@ -149,6 +171,9 @@ class LoginHelper {
 	
 	// update the time the user last logged in, except if logging in via the web app
 	async updateLastLogin () {
+		if (this.dontUpdateLastLogin) {
+			return;
+		}
 		const origin = this.request.request.headers['x-cs-plugin-ide'];
 		if (origin === 'webclient') {
 			return;
@@ -174,6 +199,18 @@ class LoginHelper {
 		await this.request.data.users.applyOpById(this.user.id, op);
 	}
 
+	// delete fields associated with a login code, if applicable
+	async resetLoginCode () {
+		const op = {
+			$unset: {
+				loginCode: true,
+				loginCodeAttempts: true,
+				loginCodeExpiresAt: true,
+			}
+		};
+		await this.request.data.users.applyOpById(this.user.id, op);
+	}
+
 	// get the third-party issue providers that are available for issue codemark integration
 	// this fetches the "standard" in-cloud providers, we'll add to this for providers for each individual team
 	getThirdPartyProviders () {
@@ -195,13 +232,28 @@ class LoginHelper {
 			return;
 		}
 
-		const { isOnPrem, runTimeEnvironment, isProductionCloud } = this.apiConfig.sharedGeneral;
+		const { 
+			isOnPrem,
+			isProductionCloud = false,
+			newRelicLandingServiceUrl,
+			newRelicApiUrl
+		} = this.apiConfig.sharedGeneral;
+		const { environmentGroup } = this.apiConfig;
+		
+		// substitute the "short name" of this environment host, if found
+		let runTimeEnvironment = this.apiConfig.sharedGeneral.runTimeEnvironment;
+		if (environmentGroup && environmentGroup[runTimeEnvironment]) {
+			runTimeEnvironment = environmentGroup[runTimeEnvironment].shortName;
+		}
+
+		// get this API server's capabilities
+		const capabilities = await DetermineCapabilities({ request: this });
 
 		this.responseData = {
 			user: this.user.getSanitizedObjectForMe({ request: this.request }),	// include me-only attributes
 			accessToken: this.accessToken,	// access token to supply in future requests
 			broadcasterToken: this.broadcasterToken, // more generic "broadcaster" token, for broadcaster solutions other than PubNub
-			capabilities: { ...APICapabilities }, // capabilities served by this API server
+			capabilities, // capabilities served by this API server
 			features: {
 				slack: {
 					interactiveComponentsEnabled: this.api.config.integrations.slack.interactiveComponentsEnabled
@@ -209,27 +261,17 @@ class LoginHelper {
 			},
 			isOnPrem,
 			isProductionCloud,
-			runtimeEnvironment: runTimeEnvironment
+			runtimeEnvironment: runTimeEnvironment,
+			environmentHosts: Object.values(environmentGroup || []),
+			isWebmail: this.isWebmail,
+			eligibleJoinCompanies: this.eligibleJoinCompanies,
+			accountIsConnected: this.accountIsConnected,
+			newRelicLandingServiceUrl,
+			newRelicApiUrl
 		};
 		if (this.apiConfig.broadcastEngine.pubnub && this.apiConfig.broadcastEngine.pubnub.subscribeKey) {
 			this.responseData.pubnubKey = this.apiConfig.broadcastEngine.pubnub.subscribeKey;	// give them the subscribe key for pubnub
 			this.responseData.pubnubToken = this.pubnubToken;	// token used to subscribe to PubNub channels
-		}
-
-		// handle capabilities
-		if (this.apiConfig.email.suppressEmails) {
-			// remove capability for outbound email support if suppressEmails is set in configuration
-			delete this.responseData.capabilities.emailSupport;
-		}
-		
-		// if on-prem, remove any capabilities marked as cloud only
-		if (isOnPrem) {
-			Object.keys(this.responseData.capabilities).forEach(key => {
-				const capability = this.responseData.capabilities[key];
-				if (capability.cloudOnly) {
-					delete this.responseData.capabilities[key];
-				}
-			});
 		}
 
 		// if using socketcluster for messaging (for on-prem installations), return host info
@@ -238,6 +280,9 @@ class LoginHelper {
 			this.responseData.socketCluster = { host, port, ignoreHttps };
 		}
 		Object.assign(this.responseData, this.initialData);
+
+		// add any foreign (cross-environment) companies
+		this.responseData.companies = [...this.responseData.companies, ...(this.foreignCompanies || [])];
 	}
 
 	// grant the user permission to subscribe to various broadcaster channels
@@ -253,6 +298,57 @@ class LoginHelper {
 		catch (error) {
 			throw this.request.errorHandler.error('userMessagingGrant', { reason: error });
 		}
+	}
+
+	// get list of companies the user is not a member of, but is eligible to join
+	async getEligibleJoinCompanies () {
+		const domain = EmailUtilities.parseEmail(this.user.get('email')).domain.toLowerCase();
+		this.isWebmail = WebmailCompanies.includes(domain);
+
+		// ignore webmail domains
+		if (this.isWebmail) {
+			return;
+		}
+
+		if (this.notTrueLogin) { return; }
+
+		this.eligibleJoinCompanies = await GetEligibleJoinCompanies(domain, this.request);
+	}
+
+	// set flag indicating whether this user's New Relic account is connected to a CodeStream company
+	async getAccountIsConnected () {
+		if (!this.nrAccountId || (this.eligibleJoinCompanies || []).length > 0) {
+			// doesn't apply if no NR account ID is given, or there are companies the user is
+			// already eligible to join by domain
+			return;
+		}
+
+		// first check to see if any companies are directly tied to this account
+		let company = await this.request.data.companies.getOneByQuery(
+			{ nrAccountIds: this.nrAccountId },
+			{ hint: CompanyIndexes.byNRAccountId }
+		);
+		if (company) {
+			this.accountIsConnected = true;
+			return;
+		}
+
+		// now lookup the NR org associated with this account
+		const nrOrgInfo = await this.request.api.data.newRelicOrgs.getOneByQuery(
+			{ accountId: this.nrAccountId },
+			{ hint: NewRelicOrgIndexes.byAccountId }
+		);
+		if (!nrOrgInfo) {
+			this.accountIsConnected = false;
+			return;
+		}
+
+		// if we found a match, see if any companies match the org
+		company = await this.request.data.companies.getOneByQuery(
+			{ nrOrgIds: nrOrgInfo.orgId },
+			{ hint: CompanyIndexes.byNROrgId }
+		);
+		this.accountIsConnected = !!company;
 	}
 }
 

@@ -59,7 +59,23 @@ class APIRequest {
 		if (typeof this[phase] !== 'function') {
 			return;
 		}
-		await this[phase]();
+
+		// for monitoring, start a new segment (or span?) for every phase
+		if (this.api.services.newrelic) {
+			await new Promise((resolve, reject) => {
+				this.api.services.newrelic.startSegment(phase, true, async () => {
+					try {
+						await this[phase]();
+					} catch (eee){
+						reject(eee);
+					}
+					resolve();
+				});
+			});
+		} else {
+			await this[phase]();
+		}
+		
 		if (phase === this.RESPONSE_PHASE) {
 			this.responseIssued = true;
 		}
@@ -101,6 +117,7 @@ class APIRequest {
 			catch (responsePhaseError) {
 				if (responsePhaseError) {
 					this.error('Error handling response: ' + responsePhaseError);
+					this.reportError(responsePhaseError);					
 				}
 			}
 		}
@@ -178,6 +195,7 @@ class APIRequest {
 				(typeof this.gotError === 'object' && this.gotError.internal)
 			) {
 				this.statusCode = 500; // internal errors get a 500
+				this.reportError(this.gotError);
 			}
 			else {
 				this.statusCode = 403; // others get a 403
@@ -189,6 +207,13 @@ class APIRequest {
 		this.response.status(this.statusCode).send(this.responseData);
 	}
 
+	// report error to monitoring service
+	reportError (error) {
+		if (this.api.services.newrelic) {
+			this.api.services.newrelic.noticeError(error);
+		}
+	}
+	
 	// close out this request
 	async close () {
 		if (this.response) {

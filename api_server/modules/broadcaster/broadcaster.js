@@ -9,16 +9,28 @@ const MockPubnub = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_util
 const SocketClusterClient = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/socketcluster/socketcluster_client');
 const OS = require('os');
 const TryIndefinitely = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/try_indefinitely');
-const UUID = require('uuid/v4');
+const UUID = require('uuid').v4;
 
 const DEPENDENCIES = [
 	'alerts'
+];
+
+const ROUTES = [
+	{
+		method: 'get',
+		path: '/history-fetch',
+		func: 'announceHistoryFetch'
+	}
 ];
 
 class Broadcaster extends APIServerModule {
 
 	getDependencies () {
 		return DEPENDENCIES;
+	}
+
+	getRoutes () {
+		return ROUTES;
 	}
 
 	services () {
@@ -152,6 +164,9 @@ class Broadcaster extends APIServerModule {
 		this.api.services.alerts.clearAlert(code);
 	}
 
+	announceHistoryFetch (request, response) {
+		response.send({});
+	}
 }
 
 module.exports = Broadcaster;

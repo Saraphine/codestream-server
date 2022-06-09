@@ -4,7 +4,7 @@
 
 const BoundAsync = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/bound_async');
 const CodeStreamAPITest = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/lib/test_base/codestream_api_test');
-const UUID = require('uuid/v4');
+const UUID = require('uuid').v4;
 const RandomString = require('randomstring');
 const DefaultTags = require('../../default_tags');
 const DeepClone = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/deep_clone');
@@ -14,6 +14,7 @@ class CommonInit {
 	init (callback) {
 		this.teamOptions.creatorIndex = 1;
 		this.userOptions.numRegistered = 3;
+		this.userOptions.numUnregistered = 1;
 		BoundAsync.series(this, [
 			CodeStreamAPITest.prototype.before.bind(this),
 			this.createTags,
@@ -67,11 +68,11 @@ class CommonInit {
 				$set: {
 					[`tags.${this.tagId}.deactivated`]: true,
 					modifiedAt: Date.now(),
-					version: 8
+					version: 9
 				},
 				$version: {
-					before: 7,
-					after: 8
+					before: 8,
+					after: 9
 				}
 			}
 		};

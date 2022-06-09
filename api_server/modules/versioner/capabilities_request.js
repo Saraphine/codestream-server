@@ -3,7 +3,7 @@
 'use strict';
 
 const RestfulRequest = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/lib/util/restful/restful_request');
-const APICapabilities = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/etc/capabilities');
+const DetermineCapabilities = require('./determine_capabilities');
 
 class CapabilitiesRequest extends RestfulRequest {
 	
@@ -14,11 +14,31 @@ class CapabilitiesRequest extends RestfulRequest {
 	// process the request...
 	async process () {
 		// return the capabilities
+		const {
+			isOnPrem,
+			isProductionCloud,
+			newRelicLandingServiceUrl,
+			newRelicApiUrl
+		} = this.api.config.sharedGeneral;
+		const environmentGroup = this.api.config.environmentGroup || {};
+
+
+		// substitute the "short name" of this environment host, if found
+		let runTimeEnvironment = this.api.config.sharedGeneral.runTimeEnvironment;
+		if (environmentGroup && environmentGroup[runTimeEnvironment]) {
+			runTimeEnvironment = environmentGroup[runTimeEnvironment].shortName;
+		}
+
+		// determine this API server's capabilities
+		const capabilities = await DetermineCapabilities({ request: this });
 		this.responseData = {
-			capabilities: { ...APICapabilities },
-			environment: this.api.config.sharedGeneral.runTimeEnvironment,
-			isOnPrem: this.api.config.sharedGeneral.isOnPrem,
-			isProductionCloud: this.api.config.sharedGeneral.isProductionCloud
+			capabilities,
+			environment: runTimeEnvironment,
+			environmentHosts: Object.values(environmentGroup),
+			isOnPrem: isOnPrem,
+			isProductionCloud: isProductionCloud,
+			newRelicLandingServiceUrl: newRelicLandingServiceUrl,
+			newRelicApiUrl: newRelicApiUrl
 		};
 	}
 

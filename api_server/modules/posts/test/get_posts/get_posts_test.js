@@ -9,19 +9,13 @@ class GetPostsTest extends CodeStreamAPITest {
 	constructor (options) {
 		super(options);
 		this.teamOptions.creatorIndex = 1;
-		// posting to channels other than the team stream is no longer supported,
-		// so disable any possibility of posting elsewhere
-		/*
-		this.type = this.type || 'channel';
-		Object.assign(this.streamOptions, {
-			creatorIndex: 1,
-			type: this.type
-		});
-		*/
 		Object.assign(this.postOptions, {
 			creatorIndex: 1,
 			numPosts: 5
 		});
+
+		// this ensures the "repo post", if any, has a timestamp less than any of the other posts created
+		this.repoOptions.waitAfterCreateRepo = 1000;		
 	}
 
 	get description () {
@@ -33,19 +27,27 @@ class GetPostsTest extends CodeStreamAPITest {
 	before (callback) {
 		BoundAsync.series(this, [
 			super.before,
+			this.logPosts,
 			this.setPath			// set the path for our request to retrieve posts
 		], callback);
 	}
 
+	logPosts (callback) {
+		this.testLog(`CREATED: ${this.postData.map(postData => postData.post.id)}`);
+		callback();
+	}
+	
 	// set the path to use for the fetch request
 	setPath (callback) {
-		this.path = `/posts?teamId=${this.team.id}&streamId=${this.teamStream.id}`;
+		this.path = `/posts?teamId=${this.team.id}` //&streamId=${this.teamStream.id}`;
 		this.expectedPosts = this.postData.map(postData => postData.post);
 		callback();
 	}
 
 	// validate the response to the fetch request
 	validateResponse (data) {
+		this.testLog(`EXPECTED: ${this.expectedPosts.map(post => post.id)}`);
+		this.testLog(`GOT: ${data.posts.map(post => post.id)}`);
 		// we expect certain posts, and we expect their attributes are sanitized (devoid
 		// of attributes that should not go to the client)
 		this.validateMatchingObjects(data.posts, this.expectedPosts, 'posts');

@@ -11,6 +11,7 @@ else
 fi
 . $CSSVC_BACKEND_ROOT/sandbox/shared/sandbox_config.sh || return 1
 
+export CS_MAILIN_SHORT_NAME=mailin
 # common sandbox initialization routines
 sbcfg_initialize CS_MAILIN
 
@@ -37,7 +38,7 @@ fi
 
 # CONSIDER MOVING THIS TO THE CONFIG FILE!!
 # For the local poller service (cs_mailin-local-poller) - development only
-[ "$CSSVC_ENV" = "local" ] && export CS_MAILIN_REMOTE_INBOUND_MAIL_SERVER=web@localmail.codestream.us
-[ "$CSSVC_ENV" = "local" ] && export CS_MAILIN_REMOTE_INBOUND_MAIL_DIR=/home/web/codestream-mail/inbound/web/new
+sandutil_is_local_environment && export CS_MAILIN_REMOTE_INBOUND_MAIL_SERVER=web@localmail.codestream.us
+sandutil_is_local_environment && export CS_MAILIN_REMOTE_INBOUND_MAIL_DIR=/home/web/codestream-mail/inbound/web/new
 
 return 0

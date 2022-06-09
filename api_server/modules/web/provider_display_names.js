@@ -12,6 +12,8 @@ module.exports = {
 	'azuredevops': 'Azure DevOps',
 	'vsts': 'Visual Studio Team Services',
 	'linear': 'Linear',
-	'clubhouse': 'Clubhouse'
+	'clubhouse': 'Clubhouse',
+	'shortcut': 'Shortcut',
+	'newrelic': 'New Relic'
 };
 

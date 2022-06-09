@@ -85,12 +85,19 @@ class MongoClient {
 
 		try {
 			if (this.options.logger) {
-				this.options.logger.log(`Connecting to mongo: ${this.config.url}`);
+				this.options.logger.log(`Connecting to mongo`);
 			}
 			const settings = Object.assign({}, this.config.settings, {
 				useNewUrlParser: true,
 				useUnifiedTopology: true
 			});
+			if (process.env.CSSVC_MONGO_CLIENT_CERT_FILE) {
+				settings.tls = true;
+				settings.tlsCAFile = process.env.CSSVC_MONGO_CLIENT_CERT_FILE
+			}
+			else {
+				Object.assign(settings, this.config.tlsOptions);
+			};
 			if (this.options.tryIndefinitely) {
 				await TryIndefinitely(async () => {
 					this.mongoClient = await MongoDbClient.connect(
@@ -159,7 +166,8 @@ class MongoClient {
 			reallySlowLogger: this.reallySlowLogger,
 			*/
 			hintsRequired: this.options.hintsRequired,
-			noLogData: (this.options.queryLogging || {}).noLogData
+			noLogData: (this.options.queryLogging || {}).noLogData,
+			mockMode: this.options.mockMode
 		});
 	}
 

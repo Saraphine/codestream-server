@@ -17,7 +17,7 @@ const {
 
 const PERSONAL_BOT_MESSAGE = 'Please run this command from your personal bot chat.';
 const TEAM_BOT_MESSAGE = 'Please run this command from a team channel.';
-// const HELP_URL = 'https://docs.codestream.com/userguide/features/msteams-integration/';
+// const HELP_URL = 'https://docs.newrelic.com/docs/codestream/codestream-integrations/msteams-integration/';
 // Keys of properties used to store 
 const STATE_PROPERTY_WELCOMED_USER = 'welcomedUser';
 const STATE_PROPERTY_CODESTREAM_USER_ID = 'codestreamUserId';
@@ -31,15 +31,15 @@ class MSTeamsConversationBot extends TeamsActivityHandler {
 		// members added to the conversation. this is what is called right after a bot is installed
 		this.onMembersAdded(async (context, next) => {
 			// Iterate over all new members added to the conversation
-			for (const idx in context.activity.membersAdded) {
+			// for (const idx in context.activity.membersAdded) {
 				// Greet anyone that was not the target (recipient) of this message.
 				// Since the bot is the recipient for events from the channel,
 				// context.activity.membersAdded === context.activity.recipient.Id indicates the
 				// bot was added to the conversation, and the opposite indicates this is a user.
-				if (context.activity.membersAdded[idx].id !== context.activity.recipient.id) {
-					await this.firstRun(context);
-				}
-			}
+				// if (context.activity.membersAdded[idx].id !== context.activity.recipient.id) {
+				// 	await this.firstRun(context);
+				// }
+			// }
 			// By calling next() you ensure that the next BotHandler is run.
 			await next();
 		});
@@ -633,7 +633,7 @@ class MSTeamsConversationBot extends TeamsActivityHandler {
 		{
 			type: 'TextBlock',
 			size: 'Medium',
-			text: 'If you already have a CodeStream account, issue the "signin" command to get started ([click here for detailed instructions](https://docs.codestream.com/userguide/features/msteams-integration/)). If you need a CodeStream account, [download the CodeStream IDE extension](https://www.codestream.com) to get started.',
+			text: 'If you already have a CodeStream account, issue the "signin" command to get started ([click here for detailed instructions](https://docs.newrelic.com/docs/codestream/codestream-integrations/msteams-integration/)). If you need a CodeStream account, [download the CodeStream IDE extension](https://www.codestream.com) to get started.',
 			wrap: true
 		}];
 
@@ -688,7 +688,7 @@ class MSTeamsConversationBot extends TeamsActivityHandler {
 				{
 					type: 'TextBlock',
 					size: 'Medium',
-					text: 'If you already have a CodeStream account, issue the "signin" command from the personal CodeStream bot to get started ([click here for detailed instructions](https://docs.codestream.com/userguide/features/msteams-integration/)).',
+					text: 'If you already have a CodeStream account, issue the "signin" command from the personal CodeStream bot to get started ([click here for detailed instructions](https://docs.newrelic.com/docs/codestream/codestream-integrations/msteams-integration/)).',
 					wrap: true
 				},
 				{
@@ -750,7 +750,7 @@ class MSTeamsConversationBot extends TeamsActivityHandler {
 		{
 			type: 'TextBlock',
 			size: 'Medium',
-			text: 'If you already have a CodeStream account, issue the "signin" command here to get started ([click here for detailed instructions](https://docs.codestream.com/userguide/features/msteams-integration/)). ',
+			text: 'If you already have a CodeStream account, issue the "signin" command here to get started ([click here for detailed instructions](https://docs.newrelic.com/docs/codestream/codestream-integrations/msteams-integration/)). ',
 			wrap: true
 		},
 		{

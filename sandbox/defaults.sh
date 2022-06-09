@@ -37,7 +37,7 @@ sandutil_load_options $CSBE_SANDBOX || { echo "failed to load options" >&2 && re
 # Uncomment and setup if node is required. Available versions can be seen
 # with the command:
 #   ssh $DT_CLOUD_SERVER ls /home/web/SandboxRepos/software/node-$DT_OS_TYPE-*
-export CSBE_NODE_VER=12.14.1
+export CSBE_NODE_VER=16.13.2
 export PATH=$CSBE_SANDBOX/node/bin:$CSBE_TOP/node_modules/.bin:./node_modules/.bin:$PATH
 
 # Add $MY_SANDBOX/bin to the search path
@@ -53,6 +53,7 @@ export CSBE_TMP=$CSBE_SANDBOX/tmp     # temp directory
 export CSBE_CONFS=$CSBE_SANDBOX/conf  # config files directory
 export CSBE_DATA=$CSBE_SANDBOX/data   # data directory
 export CSBE_PIDS=$CSBE_SANDBOX/pid    # pid files directory
+export CSBE_SHORT_NAME=csbe
 
 # The asset/artifact build environment; usually 'local', 'dev' or 'prod'
 # https://github.com/TeamCodeStream/dev_tools/blob/master/README/README.deployments.md)
@@ -63,6 +64,8 @@ export CSBE_PIDS=$CSBE_SANDBOX/pid    # pid files directory
 [ -z "$CSBE_ENV" ] && export CSBE_ENV=local
 
 export CSSVC_BACKEND_ROOT=$CSBE_TOP
+
+. $CSSVC_BACKEND_ROOT/sandbox/shared/sandbox_config.sh || return 1
 
 # These variables are defined by the sandbox-env-loader.sh script which won't be
 # called for the individual services
@@ -94,9 +97,11 @@ export CS_OUTBOUND_EMAIL_TOP=$CSBE_TOP/outbound_email
 # CS_OUTBOUND_EMAIL_DEPS=....
 . $CS_OUTBOUND_EMAIL_TOP/sandbox/defaults.sh
 
-echo "Loading onprem-admin environment..."
-export OPADM_NAME=$CSBE_NAME
-export OPADM_SANDBOX=$CSBE_SANDBOX
-export OPADM_TOP=$CSBE_TOP/onprem_admin
-# OPADM_DEPS=....
-. $OPADM_TOP/sandbox/defaults.sh
+# echo "Loading onprem-admin environment..."
+# export OPADM_NAME=$CSBE_NAME
+# export OPADM_SANDBOX=$CSBE_SANDBOX
+# export OPADM_TOP=$CSBE_TOP/onprem_admin
+# # OPADM_DEPS=....
+# . $OPADM_TOP/sandbox/defaults.sh
+
+sbcfg_setup_for_newrelic_instrumentation $CSSVC_BACKEND_ROOT $CSBE_TOP $CSBE_SHORT_NAME

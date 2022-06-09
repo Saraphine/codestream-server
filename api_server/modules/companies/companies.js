@@ -2,17 +2,20 @@
 
 const Restful = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/lib/util/restful/restful');
 const CompanyCreator = require('./company_creator');
-//const CompanyUpdater = require('./company_updater');
+const CompanyUpdater = require('./company_updater');
+const CompanyDeleter = require('./company_deleter');
 const Company = require('./company');
 
 // we'll expose only these routes
 const COMPANY_STANDARD_ROUTES = {
-	want: ['get', 'getMany', 'post'],
+	want: ['get', 'getMany', 'post', 'put', 'delete'],
 	baseRouteName: 'companies',
 	requestClasses: {
 		'get': require('./get_company_request'),
 		'getMany': require('./get_companies_request'),
-		'post': require('./post_company_request')
+		'post': require('./post_company_request'),
+		'put': require('./put_company_request'),
+		'delete': require('./delete_company_request')
 	}
 };
 
@@ -22,6 +25,16 @@ const COMPANY_ADDITIONAL_ROUTES = [
 		method: 'put',
 		path: '/company-test-group/:id',
 		requestClass: require('./put_company_test_group_request')
+	},
+	{
+		method: 'put',
+		path: '/companies/join/:id',
+		requestClass: require('./join_company_request')
+	},
+	{
+		method: 'post',
+		path: '/companies/add-nr-info/:id',
+		requestClass: require('./add_nr_info_request')
 	}
 ];
 
@@ -47,11 +60,13 @@ class Companies extends Restful {
 		return Company;	// derived from DataModel, class to use for a company model
 	}
 
-	/*
 	get updaterClass () {
 		return CompanyUpdater;
 	}
-*/
+
+	get deleterClass () {
+		return CompanyDeleter;
+	}
 
 	// compile all the routes to expose
 	getRoutes () {

@@ -25,14 +25,21 @@ class WeeklyEmailRenderer {
 
 		let inviteDiv = '';
 		if (!user.isRegistered && user.inviteCode) {
+			const inviteCopy = true/*this.teamData.team.isEveryoneTeam*/ ? `
+1. Install the extension for ${ideLinks}.<br/>
+2. Sign up using <b>${user.email}</b>.<br/>
+` : `
+1. Install the extension for ${ideLinks}.<br/>
+2. Paste in your invitation code:<br/>
+&nbsp;&nbsp;&nbsp;&nbsp;<b>${user.inviteCode}</b><br/>
+`;
+
 			inviteDiv = `
 <div class="ensure-white">
 	Join your teammates on CodeStream.<br/>
 	Your teammates don’t need to leave their IDE to discuss and review code. You shouldn’t either!<br/>
 	<br/>
-	1. Install the extension for ${ideLinks}.<br/>
-	2. Paste in your invitation code:<br/>
-	&nbsp;&nbsp;&nbsp;&nbsp;<b>${user.inviteCode}</b><br/>
+	${inviteCopy}
 	<br/>
 </div>
 `;
@@ -40,6 +47,7 @@ class WeeklyEmailRenderer {
 
 		let content =  this.renderTeamContent(options);
 		let latestNewsSection = '';
+		/*
 		if (latestNews) {
 			latestNewsSection = `
 <div class="heading ensure-white">
@@ -50,6 +58,7 @@ class WeeklyEmailRenderer {
 </div>
 `;
 		}
+		*/
 
 		let unsubscribeDiv = this.renderUnsubscribe(options);
 
@@ -75,7 +84,7 @@ class WeeklyEmailRenderer {
 					<div class="master">
 						<div>			 
 							<a href="https://codestream.com" clicktracking="off">
-								<img alt="CodeStream" class="logo" src="https://images.codestream.com/logos/cs-banner-400x60.png" />
+								<img alt="CodeStream" class="logo" src="https://images.codestream.com/logos/nrcs_logo_240x60_dark.png" />
 							</a>
 						</div>
 						<!--[if mso]><br><br><![endif]-->
@@ -111,7 +120,12 @@ return `
 
 	renderMembership (users, team) {
 		const activeMembers = users.filter(user => {
-			return !user.externalUserId && !user.deactivated && !(team.removedMemberIds || []).includes(user.id);
+			return (
+				!user.externalUserId &&
+				!user.deactivated &&
+				!(team.removedMemberIds || []).includes(user.id) &&
+				!(team.foreignMemberIds || []).includes(user.id)
+			);
 		});
 		const memberDesc = activeMembers.length !== 1 ? `${activeMembers.length} total members`: '1 member';
 		const unregisteredMembers = activeMembers.filter(user => !user.isRegistered);

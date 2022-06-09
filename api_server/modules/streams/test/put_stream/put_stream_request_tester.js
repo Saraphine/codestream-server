@@ -45,6 +45,7 @@ const UsersNotOnTeamTest = require('./users_not_on_team_test');
 //const ArchiveClearUnreadsForTeamStreamMessageTest = require('./archive_clear_unreads_for_team_stream_message_test');
 //const IllegalSlackChannelNameTest = require('./illegal_slack_channel_name_test');
 //const SlackChannelNameTooLongTest = require('./slack_channel_name_too_long_test');
+const PutStreamDeprecatedTest = require('./put_stream_deprecated_test');
 
 const ILLEGAL_CHANNEL_NAME_CHARACTERS = '~#%&*{}+/<>?|\'".,';
 //const ILLEGAL_SLACK_CHANNEL_NAME_CHARACTERS = 'A@%*Z';
@@ -52,6 +53,8 @@ const ILLEGAL_CHANNEL_NAME_CHARACTERS = '~#%&*{}+/<>?|\'".,';
 class PutStreamRequestTester {
 
 	putStreamTest () {
+		new PutStreamDeprecatedTest().test();
+		/*
 		new PutStreamTest().test();
 		new PutStreamFetchTest().test();
 		new StreamNotFoundTest().test();
@@ -84,11 +87,10 @@ class PutStreamRequestTester {
 		new NoPushPullTest().test();
 		new MemberIdsNotArrayTest().test();
 		new NoChangeMembersOfTeamStreamTest().test();
-		/* stream channels are deprecated
-		new MessageToStreamTest().test();
-		new AddUserMessageToStreamTest().test();
-		new RemoveUserMessageToStreamTest().test();
-		*/
+		// stream channels are deprecated
+		//new MessageToStreamTest().test();
+		//new AddUserMessageToStreamTest().test();
+		//new RemoveUserMessageToStreamTest().test();
 		new MessageToTeamTest().test();
 		new AddUserMessageToTeamTest().test();
 		new RemoveUserMessageToTeamTest().test();
@@ -107,16 +109,16 @@ class PutStreamRequestTester {
 		new NoDuplicateNameTest().test();
 		new UsersNotFound().test();
 		new UsersNotOnTeamTest().test();
-		/*
-		  These tests depend on posts being created in streams outside of the team stream,
-		  which is no longer allowed
-		*/
+		
+		// These tests depend on posts being created in streams outside of the team stream,
+		// which is no longer allowed
 		//new RemoveUserClearUnreadsTest().test();
 		//new RemoveUserUnreadsMessageTest().test();
 		//new ArchiveClearUnreadsTest().test();
 		//new ArchiveClearUnreadsForTeamStreamTest().test();
 		//new ArchiveClearUnreadsMessageTest().test();
 		//new ArchiveClearUnreadsForTeamStreamMessageTest().test();
+		*/
 	}
 }
 

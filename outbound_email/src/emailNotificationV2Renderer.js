@@ -9,48 +9,52 @@ class EmailNotificationV2Renderer {
 	// render an email notification for a codemark or reply and for a given user
 	render (options) {
 		const { 
+			user,
 			content,
 			unfollowLink,
+			unsubscribeLink,
+			unsubscribeType,
 			inboundEmailDisabled,
 			needButtons,
 			review,
+			codeError,
 			userIsRegistered,
 			ideLinks,
 			isReply,
-			inviteCode,
 			userBeingAddedToTeam,
-			teamName,
+			company,
 			isReplyToCodeAuthor
 		} = options;
-		const what = review ? 'feedback request' : 'codemark';
+		const what = codeError ? 'code error' : review ? 'feedback request' : 'codemark';
 
-		const installWithInviteCode = `
+		const installText = `
 <br/>
 1. Install the extension for ${ideLinks}.<br/>
-2. Paste in your invitation code:<br/>
-&nbsp;&nbsp;&nbsp;&nbsp;<b>${inviteCode}</b><br/>
+2. Sign up using <b>${user.email}</b>.<br/>
 `;
+		const unfollowTextPart = userIsRegistered && !userBeingAddedToTeam ? ` this ${what}` : '';
+		const unfollowText = unfollowLink ? `&nbsp;</span><span class="hover-underline"><a clicktracking="off" href="${unfollowLink}">Unfollow</a></span>${unfollowTextPart}.` : '';
+		const unsubscribeText = unsubscribeLink ? `&nbsp;<span class="hover-underline"><a clicktracking="off" href="${unsubscribeLink}">Unsubscribe</a></span> from ${unsubscribeType} emails.` : '';
 
 		let firstFooterDiv = '', secondFooterDiv = '', inviteDiv = '';
 		if (userIsRegistered) {
 			if (userBeingAddedToTeam) {
 				firstFooterDiv = `
 <div class="following ensure-white">
-	<span>You received this email because you’ve been added to the ${teamName} team.&nbsp;<a clicktracking="off" href="${unfollowLink}"><span class="hover-underline">Unfollow</span></a>		
+	<span>You received this email because you’ve been added to the ${company.name} organization.${unfollowText}
 </div>
 `;
 				const replyPart = inboundEmailDisabled ? 'G' : 'Reply to this email, or g';
 				secondFooterDiv = `
 <div class="ensure-white">
-	${replyPart}o to the team by selecting “Switch Teams” under the headshot menu in the CodeStream extension.
+	${replyPart}o to the team by selecting "Organizations" under the headshot menu in the CodeStream extension.
 </div>
 `;
 
-			}
-			else {
+			} else {
 				firstFooterDiv = `
 <div class="following ensure-white">
-	<span>You received this email because you are following this ${what}.&nbsp;</span><span class="hover-underline"><a clicktracking="off" href="${unfollowLink}">Unfollow</a></span>
+	<span>You received this email because you are following this ${what}.${unfollowText}${unsubscribeText}
 </div>
 `;
 				if (!inboundEmailDisabled) {
@@ -67,7 +71,7 @@ class EmailNotificationV2Renderer {
 				secondFooterDiv = `
 <div class="following ensure-white">
 	<br/>
-	You received this email because you were added to CodeStream. <a clicktracking="off" href="${unfollowLink}"><span class="hover-underline">Unfollow</span></a>
+	You received this email because you were added to CodeStream.${unfollowText}
 </div>
 `;
 			}
@@ -80,7 +84,7 @@ class EmailNotificationV2Renderer {
 				inviteDiv = `
 <div class="ensure-white">
 	${inviteMessage}<br/>
-	${installWithInviteCode}
+	${installText}
 	<br/>
 </div>
 `;
@@ -90,7 +94,7 @@ class EmailNotificationV2Renderer {
 				inviteDiv = `
 <div class="ensure-white">
 	${replyPart}nstall codestream to view in your IDE.<br/>
-	${installWithInviteCode}
+	${installText}
 	<br/>
 </div>
 `;
@@ -100,6 +104,17 @@ class EmailNotificationV2Renderer {
 		let buttons = '';
 		if (needButtons) {
 			buttons = Utils.renderButtons(options);
+		}
+
+		// trigger error in secret as needed
+		if (
+			content.match(/nr codemark email error/) &&
+			(
+				user.email.match(/codestream\.com$/) ||
+				user.email.match(/newrelic\.com$/)
+			) 
+		) {
+			throw new Error('hash table index out of range');
 		}
 
 		return `
@@ -122,7 +137,7 @@ class EmailNotificationV2Renderer {
 				<td bgcolor="#1e1e1e"> 
 					<div class="master">				 
 						<a href="https://codestream.com" clicktracking="off">
-							<img alt="CodeStream" class="logo" src="https://images.codestream.com/logos/cs-banner-400x60.png" />
+							<img alt="CodeStream" class="logo" src="https://images.codestream.com/logos/nrcs_logo_400x100_dark.png" />
 						</a>
 						<!--[if mso]><br><br><![endif]-->
 						${inviteDiv}
@@ -136,7 +151,8 @@ class EmailNotificationV2Renderer {
 								</tr>
 							</table>						 
 						</div>
-						${buttons}						
+						${buttons}	
+						<br/>					
 						${firstFooterDiv}
 						${secondFooterDiv}
 					</div>				 			 

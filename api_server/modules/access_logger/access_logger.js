@@ -40,6 +40,10 @@ class AccessLogger extends APIServerModule {
 	}
 
 	logRequest (request, response, status, startTimer) {
+		if (this.disableLogRequest(request)) {
+			return;
+		}
+
 		const elapsedTime = Date.now() - startTimer;
 		const userId = (request.user && request.user.id) || '???';
 		const ide = request.headers['x-cs-plugin-ide'] || '???';
@@ -57,7 +61,25 @@ class AccessLogger extends APIServerModule {
 		}
 		const testNum = request.headers['x-cs-test-num'] || '';
 
-		this.api.log(
+		const json = {
+			id: request.id,
+			stat: status,
+			meth: request.method.toUpperCase(),
+			url: request.url,
+			uid: userId,
+			code: response.statusCode,
+			len: response.get('content-length'),
+			time: elapsedTime,
+			ip,
+			ref: request.headers.referer,
+			uag: request.headers['user-agent'],
+			ide,
+			ver: pluginVersion,
+			idev: ideVersion,
+			tnum: testNum
+		};
+			
+		const text = 
 			request.id                     + ' '   +
 			status                         + ' '   +
 			request.method.toUpperCase()   + ' '   +
@@ -72,8 +94,20 @@ class AccessLogger extends APIServerModule {
 			ide                            + '" "' +
 			pluginVersion                  + '" "' + 
 			ideVersion                     + '" '  +
-			testNum					
-		);
+			testNum;				
+
+		this.api.log(text, request.id, 'info', {}/*, json*/);
+	}
+
+	disableLogRequest (request) {
+		if (
+			this.api.config.apiServer.dontLogHealthChecks &&
+			request.method.toLowerCase() === 'get' &&
+			request.url === '/no-auth/status'
+		) {
+			return true;
+		}
+		return false;
 	}
 }
 

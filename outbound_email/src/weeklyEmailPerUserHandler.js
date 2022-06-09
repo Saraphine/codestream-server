@@ -9,6 +9,8 @@ const TokenHandler = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_ut
 const ONE_HOUR = 60 * 60 * 1000;
 const ONE_DAY = 24 * ONE_HOUR;
 const ONE_WEEK = 7 * ONE_DAY;
+// suppress certain results when team size gets too big
+const SUPPRESS_TEAM_SIZE = 25;
 
 class WeeklyEmailPerUserHandler {
 
@@ -143,7 +145,7 @@ class WeeklyEmailPerUserHandler {
 			{
 				hint: {
 					teamId: 1,
-					streamId: 1,
+					//streamId: 1,
 					_id: -1
 				},
 				sort: { _id: -1 },
@@ -269,12 +271,16 @@ class WeeklyEmailPerUserHandler {
 				review.status === 'approved' &&
 				review.approvedAt > this.userData.contentCreatedSince
 			) {
-				this.userData.closedReviews.push(review);
+				if (this.teamData.users.length <= SUPPRESS_TEAM_SIZE) {
+					this.userData.closedReviews.push(review);
+				}
 			} else if (review.status === 'open') {
 				if ((review.reviewers || []).includes(this.user.id)) {
 					this.userData.myReviews.push(review);
 				} else if (review.createdAt > this.userData.contentCreatedSince) {
-					this.userData.newReviews.push(review);
+					if (this.teamData.users.length <= SUPPRESS_TEAM_SIZE) {
+						this.userData.newReviews.push(review);
+					}
 				}
 			}
 		});
@@ -308,12 +314,16 @@ class WeeklyEmailPerUserHandler {
 			if (codemark.post.parentPost) { return; } // codemarks under reviews don't show up as separate items
 			if (codemark.status === 'closed') {
 				if (codemark.modifiedAt > this.userData.contentCreatedSince) {
-					this.userData.closedCodemarks.push(codemark);
+					if (this.teamData.users.length <= SUPPRESS_TEAM_SIZE) {
+						this.userData.closedCodemarks.push(codemark);
+					}
 				}
 			} else if ((codemark.assignees || []).includes(this.user.id)) {
 				this.userData.myCodemarks.push(codemark);
 			} else if (codemark.createdAt > this.userData.contentCreatedSince) {
-				this.userData.newCodemarks.push(codemark);
+				if (this.teamData.users.length <= SUPPRESS_TEAM_SIZE) {
+					this.userData.newCodemarks.push(codemark);
+				}
 			}
 		});
 		this.haveContent = this.haveContent || (
@@ -347,6 +357,10 @@ class WeeklyEmailPerUserHandler {
 
 	// get any unread items for the team and user that are not covered by the other categories
 	async getMyUnreads () {
+		if (this.teamData.users.length > SUPPRESS_TEAM_SIZE) {
+			this.userData.unreads = [];
+			return;
+		}
 		this.userData.unreads = await this.getMyPosts(this.postIsUnread, 'unreads');
 		this.haveContent = this.haveContent || this.userData.unreads.length > 0;
 	}
@@ -506,7 +520,7 @@ class WeeklyEmailPerUserHandler {
 
 	// get the appropriate subject for the email
 	getSubject () {
-		const teamName = this.teamData.team.name;
+		const teamName = true/*this.teamData.team.isEveryoneTeam*/ ? this.teamData.company.name : this.teamData.team.name;
 		const earlierMonday = this.findEarlierMonday();
 		return `${teamName} activity for the week of ${earlierMonday}`;
 	}

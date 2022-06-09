@@ -2,6 +2,7 @@
 
 'use strict';
 
+const GetStreamsTest = require('./get_streams_test');
 const GetStreamsByTeamIdAndIdsTest = require('./get_streams_by_team_id_and_ids_test');
 const GetStreamsByRepoIdAndIdsTest = require('./get_streams_by_repo_id_and_ids_test');
 const GetStreamsOnlyFromTeamTest = require('./get_streams_only_from_team_test');
@@ -34,17 +35,18 @@ const ACLTest = require('./acl_test');
 class GetStreamsRequestTester {
 
 	getStreamsTest () {
+		new GetStreamsTest().test();
 		new GetStreamsByTeamIdAndIdsTest().test();
 		new GetStreamsByRepoIdAndIdsTest().test();
 		new GetStreamsOnlyFromTeamTest().test();
 		new GetStreamsOnlyFromRepoTest().test();
 		new GetFileStreamsByRepoTest().test();
-		new GetChannelStreamsByTeamTest().test();
-		new GetDirectStreamsByTeamTest().test();
-		new GetAllStreamsByTeamTest().test();
+		//new GetChannelStreamsByTeamTest().test();
+		//new GetDirectStreamsByTeamTest().test();
+		//new GetAllStreamsByTeamTest().test();
 		new GetAllStreamsByRepoTest().test();
-		new GetPublicStreamsTest().test();
-		new GetTeamStreamsTest().test();
+		//new GetPublicStreamsTest().test();
+		//new GetTeamStreamsTest().test();
 		new InvalidTypeTest().test();
 		new NoRepoIDTest().test();
 		new TeamIDRequiredTest().test();

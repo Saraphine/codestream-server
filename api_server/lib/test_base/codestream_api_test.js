@@ -13,6 +13,8 @@ const RandomPostFactory = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/
 const RandomMarkerFactory = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/markers/test/random_marker_factory');
 const RandomCodemarkFactory = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/codemarks/test/random_codemark_factory');
 const RandomReviewFactory = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/reviews/test/random_review_factory');
+const RandomCodeErrorFactory = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/code_errors/test/random_code_error_factory');
+const RandomNRCommentFactory = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/newrelic_comments/test/random_nr_comment_factory');
 const Assert = require('assert');
 const BoundAsync = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/bound_async');
 const TestTeamCreator = require('./test_team_creator');
@@ -55,12 +57,23 @@ class CodeStreamAPITest extends APIRequestTest {
 			markerFactory: this.markerFactory,
 			repoFactory: this.repoFactory,
 		});
+		this.codeErrorFactory = new RandomCodeErrorFactory({
+			apiRequester: this,
+			markerFactory: this.markerFactory,
+			repoFactory: this.repoFactory,
+		});
 		this.postFactory = new RandomPostFactory({
 			apiRequester: this,
 			streamFactory: this.streamFactory,
 			repoFactory: this.repoFactory,
 			codemarkFactory: this.codemarkFactory,
-			reviewFactory: this.reviewFactory
+			reviewFactory: this.reviewFactory,
+			codeErrorFactory: this.codeErrorFactory
+		});
+		this.nrCommentFactory = new RandomNRCommentFactory({
+			apiRequester: this,
+			userFactory: this.userFactory,
+			codeErrorFactory: this.codeErrorFactory
 		});
 
 		this.userOptions = {
@@ -121,15 +134,19 @@ class CodeStreamAPITest extends APIRequestTest {
 	}
 
 	after (callback) {
-		if (
-			this.mockMode &&
-			!this.testDidNotRun
-		) {
-			this.clearMockCache(() => {
+		if (!this.testDidNotRun) {
+			if (this.mockMode) {
+				this.clearMockCache(() => { 
+					super.after(callback);
+				});
+			} else if (process.env.CS_API_DELETE_TEST_DATA) {
+				this.deleteTestData(() => {
+					super.after(callback);
+				});
+			} else {
 				super.after(callback);
-			});
-		}
-		else {
+			}
+		} else {
 			super.after(callback);
 		}
 	}
@@ -142,6 +159,21 @@ class CodeStreamAPITest extends APIRequestTest {
 			{
 				method: 'delete',
 				path: '/no-auth/--clear-mock-cache'
+			},
+			callback
+		);
+	}
+
+	deleteTestData (callback) {
+		this.doApiRequest(
+			{
+				method: 'delete',
+				path: '/no-auth/--delete-test-data',
+				requestOptions: {
+					headers: {
+						['X-CS-Delete-Cheat']: this.apiConfig.sharedSecrets.subscriptionCheat
+					}
+				}
 			},
 			callback
 		);

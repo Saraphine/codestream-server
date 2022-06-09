@@ -10,7 +10,7 @@ class GetPostsBeforeAfterInclusiveTest extends GetPostsTest {
 	}
 
 	get description () {
-		return 'should return the correct posts when requesting posts in a stream with an inclusive seqnum range';
+		return 'should return the correct posts when requesting posts with an inclusive ID range';
 	}
 
 	// set the path to use for the request

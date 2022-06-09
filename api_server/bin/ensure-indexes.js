@@ -23,6 +23,7 @@ const AllModuleIndexes = {
 	codemarks: require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/codemarks/indexes'),
 	codemarkLinks: require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/codemarks/codemark_link_indexes'),
 	reviews: require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/reviews/indexes'),
+	codeErrors: require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/code_errors/indexes'),
 	users: require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/users/indexes'),
 	signupTokens: require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/users/signup_token_indexes'),
 	messages: require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/broadcaster/indexes'),
@@ -30,7 +31,8 @@ const AllModuleIndexes = {
 	msteams_states: require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/msteams_states/indexes'),
 	msteams_teams: require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/msteams_teams/indexes'),
 	reposByCommitHash: require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/repos/repo_by_commit_hash_indexes'),
-	gitLensUsers: require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/users/gitlens_user_indexes')
+	gitLensUsers: require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/users/gitlens_user_indexes'),
+	newRelicOrgs: require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/newrelic_comments/new_relic_org_indexes')
 };
 
 const AllFinished = {
@@ -71,7 +73,7 @@ const BuildIndexes = async function(db, collection) {
 		AllFinished.indexes++;
 		console.log('ensuring index on collection', collection, index);
 		try {
-			await collectionObj.ensureIndex(index);
+			await collectionObj.createIndex(index);
 		}
 		catch (error) {
 			return console.log('error', error);
@@ -101,7 +103,10 @@ function WaitUntilFinished() {
 		const mongoUrl = ApiConfig.configIsMongo()
 			? ApiConfig.options.mongoUrl
 			: (await ApiConfig.loadPreferredConfig()).storage.mongo.url;
-		mongoClient = await MongoClient.connect(mongoUrl, { useNewUrlParser: true });
+		const mongoTlsOpts = ApiConfig.configIsMongo()
+			? ApiConfig.options.mongoTlsOpts
+			: (await ApiConfig.loadPreferredConfig()).storage.mongo.tlsOptions;
+		mongoClient = await MongoClient.connect(mongoUrl, Object.assign({ useNewUrlParser: true }, mongoTlsOpts));
 		db = mongoClient.db();
 	}
 	catch (error) {

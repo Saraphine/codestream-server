@@ -107,5 +107,15 @@ module.exports = {
 	'echoes': {
 		description: 'Supports periodic echoes to test broadcaster reliability',
 		version: '8.2.39'
+	},
+	'multiRegion': {
+		description: 'Supports multi-region switching',
+		version: '12.0.7',
+		useGlobal: true
+	},
+	'showPreReleaseTos': {
+		description: 'Show pre-release TOS to CLM beta testers',
+		version: '12.0.13',
+		restricted: true
 	}
 };

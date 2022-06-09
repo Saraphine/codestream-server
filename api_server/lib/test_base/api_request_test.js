@@ -7,7 +7,7 @@ const HTTPSBot = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/
 const ApiConfig = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/config/config');
 const Assert = require('assert');
 const IPC = require('node-ipc');
-const UUID = require('uuid/v4');
+const UUID = require('uuid').v4;
 const DeepEqual = require('deep-equal');
 
 var CodeStreamApiConfig;
@@ -90,6 +90,8 @@ class APIRequestTest extends GenericTest {
 		requestOptions.rejectUnauthorized = false;	// avoid complaints about security
 		this.makeHeaderOptions(options, requestOptions);
 
+		const host = process.env.CS_API_TEST_SERVER_HOST || this.apiConfig.apiServer.publicApiUrlParsed.host;
+		const port = process.env.CS_API_TEST_SERVER_PORT || (process.env.CS_API_TEST_SERVER_HOST && "443") || this.apiConfig.apiServer.port;
 		const method = options.method || 'get';
 		const path = options.path || '/';
 		const data = options.data || null;
@@ -114,8 +116,8 @@ class APIRequestTest extends GenericTest {
 		}
 		else {
 			HTTPSBot[method](
-				this.apiConfig.apiServer.publicApiUrlParsed.host,
-				this.apiConfig.apiServer.port,
+				host,
+				port,
 				path,
 				data,
 				requestOptions,
@@ -196,6 +198,10 @@ class APIRequestTest extends GenericTest {
 			// since we're just doing testing, block sending bot messages
 			requestOptions.headers['X-CS-Block-Bot-Out'] = true;
 		}
+		if (!options.reallyDoCrossEnvironment) {
+			// since we're just doing testing, block doing cross-environment stuff
+			requestOptions.headers['X-CS-Block-XEnv'] = true;
+		}
 		if (options.testEmails) {
 			// we're doing email testing, block them from being sent but divert contents
 			// to a pubnub channel that we'll listen on
@@ -251,8 +257,6 @@ class APIRequestTest extends GenericTest {
 		let objectIds_1 = objects1.map(object => object.id).sort();
 		let objectIds_2 = objects2.map(object => object.id).sort();
 		if (!DeepEqual(objectIds_1, objectIds_2)) {
-			this.testLog(`objectIds_1: ${JSON.stringify(objectIds_1, 0, 5)}`);
-			this.testLog(`objectIds_2: ${JSON.stringify(objectIds_2, 0, 5)}`);
 			Assert.fail(`${name} returned don't match`);
 		}
 		//Assert.deepStrictEqual(objectIds_2, objectIds_1, `${name} returned don't match`);
@@ -262,22 +266,12 @@ class APIRequestTest extends GenericTest {
 	validateMatchingObjectsSorted (objects1, objects2, name) {
 		let objectIds_1 = objects1.map(object => object.id);
 		let objectIds_2 = objects2.map(object => object.id);
-		if (!DeepEqual(objectIds_1, objectIds_2)) {
-			this.testLog(`objectIds_1: ${JSON.stringify(objectIds_1, 0, 5)}`);
-			this.testLog(`objectIds_2: ${JSON.stringify(objectIds_2, 0, 5)}`);
-			Assert.fail(`${name} returned don't match`);
-		}
-		//Assert.deepStrictEqual(objectIds_2, objectIds_1, `${name} returned don't match`);
+		Assert.deepStrictEqual(objectIds_2, objectIds_1, `${name} returned don't match`);
 	}
 
 	// check that the objects we got back exactly match expectations
 	validateSortedMatchingObjects(objects1, objects2, name) {
-		if (!DeepEqual(objects1, objects2)) {
-			this.testLog(`objects1: ${JSON.stringify(objects1, 0, 5)}`);
-			this.testLog(`objects2: ${JSON.stringify(objects2, 0, 5)}`);
-			Assert.fail(`${name} returned don't match`);
-		}
-		//Assert.deepStrictEqual(objects2, objects1, `${name} returned don't match`);
+		Assert.deepStrictEqual(objects2, objects1, `${name} returned don't match`);
 	}
 }
 

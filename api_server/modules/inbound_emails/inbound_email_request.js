@@ -208,6 +208,7 @@ class InboundEmailRequest extends RestfulRequest {
 			origin: 'email'
 		});
 		const postData = {
+			teamId: this.team.id,
 			streamId: this.streamId,
 			text: this.request.body.text
 		};
@@ -222,6 +223,10 @@ class InboundEmailRequest extends RestfulRequest {
 		}
 		this.post = this.postCreator.model;
 		this.responseData.post = this.post.getSanitizedObject({ request: this });
+		this.responseData = this.postCreator.makeResponseData({
+			transforms: this.transforms,
+			initialResponseData: this.responseData
+		});
 	}
 
 	// after the post is created...

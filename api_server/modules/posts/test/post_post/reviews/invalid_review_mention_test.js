@@ -1,7 +1,7 @@
 'use strict';
 
 const ReviewFollowersMentionedTest = require('./review_followers_mentioned_test');
-const ObjectID = require('mongodb').ObjectID;
+const ObjectId = require('mongodb').ObjectId;
 
 class InvalidReviewMentionTest extends ReviewFollowersMentionedTest {
 
@@ -12,13 +12,13 @@ class InvalidReviewMentionTest extends ReviewFollowersMentionedTest {
 	getExpectedError () {
 		return {
 			code: 'RAPI-1005',
-			info: 'followers must contain only users on the team'
+			reason: 'one or more mentioned users are not on the team'
 		};
 	}
 
 	makePostData (callback) {
 		super.makePostData(() => {
-			this.data.mentionedUserIds.push(ObjectID());
+			this.data.mentionedUserIds.push(ObjectId());
 			callback();
 		});
 	}

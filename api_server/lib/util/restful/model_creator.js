@@ -52,7 +52,8 @@ class ModelCreator {
 			throw this.errorHandler.error('parameterRequired', { info: info.missing.join(',') });
 		}
 		else if (info.invalid) {
-			throw this.errorHandler.error('invalidParameter', { info: info.invalid.join(',') });
+			const infoText = info.invalid.map(i => `${i.attribute}(should be ${i.expectedType})`).join(',');
+			throw this.errorHandler.error('invalidParameter', { info: infoText });
 		}
 		else if (info.deleted && this.api) {
 			this.api.warn(`These attributes were deleted: ${info.deleted.join(',')}`);
@@ -111,7 +112,7 @@ class ModelCreator {
 	}
 
 	// right before the document gets saved....
-	async preSave () {
+	async preSave (options = {}) {
 		if (this.existingModel) {
 			if (this.dontSaveIfExists) {
 				// we have a document that matches the input attributes, and there's no need
@@ -120,7 +121,7 @@ class ModelCreator {
 				return;
 			}
 			// override with the attributes passed in, we'll save these
-			this.attributes = Object.assign({}, this.existingModel.attributes, this.attributes);
+			this.attributes = Object.assign({}, this.existingModel.attributes, this.attributes, { id: this.existingModel.id });
 		}
 		else if (this.useId) {
 			this.attributes.id = this.useId;
@@ -129,7 +130,7 @@ class ModelCreator {
 		// this is where pre-save validation of the attributes happens
 		this.model = new this.modelClass(this.attributes);
 		try {
-			await this.model.preSave({ new: !this.existingModel });
+			await this.model.preSave({ ...options, new: !this.existingModel });
 		}
 		catch (error) {
 			throw this.errorHandler.error('validation', { info: error });
@@ -172,6 +173,7 @@ class ModelCreator {
 	async determineChanges () {
 		this.changes = {};
 		Object.keys(this.model.attributes).forEach(attribute => {
+			if (attribute === 'id' || attribute === '_id') { return; }
 			if (!this.attributesAreEqual(
 				this.existingModel.get(attribute),
 				this.model.get(attribute))
@@ -201,7 +203,7 @@ class ModelCreator {
 		this.updateOp = await new ModelSaver({
 			request: this.request,
 			collection: this.collection,
-			id: this.model.id
+			id: this.existingModel.id
 		}).save(op);
 	}
 

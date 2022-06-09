@@ -68,6 +68,7 @@ class GetStreamsRequest extends GetManyRequest {
 				return false;
 			}
 		}
+
 		return query;
 	}
 
@@ -111,7 +112,7 @@ class GetStreamsRequest extends GetManyRequest {
 			return Indexes.byFile;
 		}
 		else {
-			return Indexes.byMembers;
+			return Indexes.byTeamId;
 		}
 	}
 
@@ -144,7 +145,10 @@ class GetStreamsRequest extends GetManyRequest {
 					privacy: 'public'
 				}
 			];
+			// allow teamless object streams to be fetched
+			query.$or[1].type = { $in: ['channel', 'object'] };
 		}
+
 		return query;
 	}
 
@@ -153,29 +157,23 @@ class GetStreamsRequest extends GetManyRequest {
 		if (BASIC_QUERY_PARAMETERS.includes(parameter)) {
 			// basic query parameters go directly into the query
 			query[parameter] = value;
-		}
-		else if (parameter === 'ids') {
+		} else if (parameter === 'ids') {
 			// fetch by array of IDs
 			let ids = value.split(',');
 			query.id = this.data.streams.inQuerySafe(ids);
-		}
-		else if (parameter === 'unread') {
+		} else if (parameter === 'unread') {
 			// fetch streams in which there are unread messages for this user
 			let ids = Object.keys(this.user.get('lastReads') || {});
 			if (ids.length === 0) {
 				// no unreads
 				return false;
 			}
-			else {
-				query.id = this.data.streams.inQuerySafe(ids);
-			}
-		}
-		else if (RELATIONAL_PARAMETERS.includes(parameter)) {
+			query.id = this.data.streams.inQuerySafe(ids);
+		} else if (RELATIONAL_PARAMETERS.includes(parameter)) {
 			// lt, gt, lte, gte
 			let error = this.processRelationalParameter(parameter, value, query);
 			if (error) { return error; }
-		}
-		else if (!NON_FILTERING_PARAMETERS.includes(parameter)) {
+		} else if (!NON_FILTERING_PARAMETERS.includes(parameter)) {
 			// sort, limit
 			return 'invalid query parameter: ' + parameter;
 		}

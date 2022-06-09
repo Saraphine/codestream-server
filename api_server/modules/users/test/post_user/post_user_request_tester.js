@@ -79,13 +79,12 @@ class PostUserRequestTester {
 			ExistingUnregisteredAlreadyOnTeamInviteEmailTest,
 			ExistingRegisteredAlreadyOnTeamInviteEmailTest
 		]);
-		/* deprecated per https://trello.com/c/nwBGfpDG
-		new TrackingTest().test();
-		new TrackingRegisteredTest().test();
-		new TrackingAlreadyInvitedTest().test();
-		new NoTrackingTest().test();
-		// ProviderTrackingTest().test();
-		*/
+		// deprecated per https://trello.com/c/nwBGfpDG
+		//new TrackingTest().test();
+		//new TrackingRegisteredTest().test();
+		//new TrackingAlreadyInvitedTest().test();
+		//new NoTrackingTest().test();
+		//new ProviderTrackingTest().test();
 		//new UsernameResolutionTest().test();
 		//new ExtendedUsernameResolutionTest().test();
 		new UsernameResolutionWithIllegalCharactersTest().test();

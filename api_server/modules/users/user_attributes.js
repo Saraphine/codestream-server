@@ -208,6 +208,8 @@ module.exports = {
 	},
 	providerIdentities: {
 		type: 'arrayOfStrings',
+		maxLength: 20,
+		maxStringLength: 200,
 		default: []
 	},
 	providerInfo: {
@@ -342,5 +344,9 @@ module.exports = {
 	lastReadItems: {
 		type: 'object',
 		description: 'Indicates the number of replies read for each codemark or review associated with a post'
+	},
+	nrUserId: {
+		type: 'number',
+		description: 'User ID of this user on New Relic'
 	}
 };

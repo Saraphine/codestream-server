@@ -29,10 +29,10 @@ class Alerts extends APIServerModule {
 		};
 	}
 
-	/*
 	middlewares () {
 		// return any API alerts in response header
 		return (request, response, next) => {
+			/*
 			// for now, this only applies to on-prem, because broadcaster server failures
 			// are the only thing that trigger these alerts
 			if (!this.api.config.sharedGeneral.isOnPrem) { 
@@ -49,9 +49,27 @@ class Alerts extends APIServerModule {
 				}
 				next();
 			})();
+			*/
+
+			/*
+			// add "announce history fetch" to capabilities as set by global variable
+			(async () => {
+				if (request.method.toLowerCase() === 'get' && request.url === '/no-auth/status') {
+					return next();
+				}
+				const announceHistoryFetches = await this.api.data.globals.getOneByQuery(
+					{ tag: 'announceHistoryFetches' }, 
+					{ overrideHintRequired: true }
+				);
+				if (announceHistoryFetches && announceHistoryFetches.enabled) {
+					response.set('X-CS-API-Alerts', 'announceHistoryFetches');
+				}
+				next();
+			})();
+			*/
+			next();
 		};
 	}
-	*/
 
 	// handle request to fetch active alert codes
 	async handleAlerts (request, response) {

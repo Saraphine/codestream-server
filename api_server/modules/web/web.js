@@ -32,6 +32,14 @@ const STANDARD_PAGES = [
 	{
 		route: 'web/unsubscribe-weekly-complete',
 		template: 'unsubscribe_weekly_complete'
+	},
+	{
+		route: 'web/unsubscribe-notification-complete',
+		template: 'unsubscribe_notification_complete'
+	},
+	{
+		route: 'web/unsubscribe-reminder-complete',
+		template: 'unsubscribe_reminder_complete'
 	}
 ];
 
@@ -67,6 +75,11 @@ const ROUTES = [
 		requestClass: require('./set_password_request')
 	},
 	{
+		method: 'post',
+		path: 'web/user/forgot-password',
+		requestClass: require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/users/forgot_password_request')
+	},
+	{
 		method: 'get',
 		path: 'web/assign/team',
 		requestClass: require('./web_assign_team_request')
@@ -83,8 +96,23 @@ const ROUTES = [
 	},
 	{
 		method: 'post',
+		path: 'web/login-code',
+		requestClass: require('./web_login_code_request')
+	},
+	{
+		method: 'get',
+		path: 'web/confirm-code',
+		requestClass: require('./web_confirm_code_request')
+	},
+	{
+		method: 'post',
 		path: 'web/signin',
 		requestClass: require('./web_signin_request')
+	},
+	{
+		method: 'post',
+		path: 'web/signin-code',
+		requestClass: require('./web_signin_code_request')
 	},
 	{
 		method: 'get',
@@ -116,10 +144,15 @@ const ROUTES = [
 		path: 'no-auth/web/error',
 		requestClass: require('./web_error_request')
 	},
-	{
+	{ 
 		method: 'get',
 		path: 'r/:teamId/:id',
 		requestClass: require('./link_review_request')
+	},
+	{ 
+		method: 'get',
+		path: 'e/:teamId/:id',
+		requestClass: require('./link_codeerror_request')
 	},
 	{
 		method: 'get',
@@ -130,6 +163,11 @@ const ROUTES = [
 		method: 'get',
 		path: 'p/:teamId/:id',
 		requestClass: require('./link_codemark_request')
+	},
+	{
+		method: 'get',
+		path: 'open/:type',
+		requestClass: require('./link_newrelic_request')
 	},
 	{
 		method: 'get',

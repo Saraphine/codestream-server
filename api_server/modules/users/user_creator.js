@@ -12,7 +12,7 @@ const TeamErrors = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules
 const EmailUtilities = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/email_utilities');
 const UsernameValidator = require('./username_validator');
 const ArrayUtilities = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/array_utilities');
-const UUID = require('uuid/v4');
+const UUID = require('uuid').v4;
 const Base64 = require('base-64');
 
 // how long an invite code remains valid
@@ -44,7 +44,21 @@ class UserCreator extends ModelCreator {
 	getRequiredAndOptionalAttributes () {
 		return {
 			optional: {
-				string: ['email', 'password', 'username', 'fullName', 'companyName', 'timeZone', 'confirmationCode', '_pubnubUuid', 'phoneNumber', 'iWorkOn', 'inviteTrigger', 'source'],
+				string: [
+					'email',
+					'password',
+					'username',
+					'fullName',
+					'companyName',
+					'timeZone',
+					'confirmationCode',
+					'_pubnubUuid',
+					'phoneNumber',
+					'iWorkOn',
+					'inviteTrigger',
+					'source',
+					'passwordHash'
+				],
 				number: ['confirmationAttempts', 'confirmationCodeExpiresAt', 'confirmationCodeUsableUntil'],
 				boolean: ['isRegistered'],
 				'array(string)': ['secondaryEmails', 'providerIdentities'],
@@ -148,6 +162,12 @@ class UserCreator extends ModelCreator {
 		if (this.options && this.options.externalUserId) {
 			this.attributes.externalUserId = this.options.externalUserId;
 		}
+		if (this.options && this.options.providerIdentities) {
+			this.attributes.providerIdentities = this.options.providerIdentities;
+		}
+		if (this.options && this.options.nrUserId) {
+			this.attributes.nrUserId = this.options.nrUserId;
+		}
 
 		if (this.userBeingAddedToTeamId && (!this.options || !this.options.dontSetInviteCode)) {
 			this.setInviteInfo();			// set an invite code for the user to accept an invite
@@ -220,6 +240,10 @@ class UserCreator extends ModelCreator {
 
 	// hash the given password, as needed
 	async hashPassword () {
+		if (this.attributes.passwordHash) {
+			delete this.attributes.password;
+			return;
+		}
 		if (!this.attributes.password || this.notSaving) { return; }
 		this.attributes.passwordHash = await new PasswordHasher({
 			errorHandler: this.errorHandler,
@@ -295,21 +319,14 @@ class UserCreator extends ModelCreator {
 			// user creating themselves
 			this.model.attributes.creatorId = this.model.attributes.id;
 		}
-		if (this.teamIds) {
+		if (this.teamIds && this.companyIds) {
 			// NOTE - we don't allow setting this in the original attributes,
 			// because we need to be able to trust it ... so in this case it can
 			// only come from calling code, not from a request body
 			this.model.attributes.teamIds = this.teamIds;
+			this.model.attributes.companyIds = this.companyIds;
 		}
 		await super.create();
-	}
-
-	async determineChanges () {
-		super.determineChanges();
-		if (this.existingModel && this.existingModel.get('externalUserId') &&
-			this.attributes.externalUserId) {
-			this.changes.externalUserId = null;
-		}
 	}
 
 	// after the user object is saved...
@@ -334,7 +351,6 @@ class UserCreator extends ModelCreator {
 		await this.api.services.broadcaster.grant(
 			[this.model.id],
 			`user-${this.model.id}`,
-			() => {},
 			{ request: this.request }
 		);
 	}

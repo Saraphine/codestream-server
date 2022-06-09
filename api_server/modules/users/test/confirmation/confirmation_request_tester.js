@@ -31,6 +31,12 @@ const TrackTokenDeprecatedTest = require('./track_token_deprecated_test');
 const TrackCodeExpiredTest = require('./track_code_expired_test');
 const TrackIncorrectCodeTest = require('./track_incorrect_code_test');
 const ReuseCodeTest = require('./reuse_code_test');
+const EligibleJoinCompaniesTest = require('./eligible_join_companies_test');
+const IsWebmailTest = require('./is_webmail_test');
+const AccountIsConnectedTest = require('./account_is_connected_test');
+const AccountIsConnectedFalseTest = require('./account_is_connected_false_test');
+const AccountIsConnectedByOrgTest = require('./account_is_connected_by_org_test');
+const AccountIsConnectedByOrgFalseTest = require('./account_is_connected_by_org_false_test');
 
 class ConfirmationRequestTester {
 
@@ -53,20 +59,25 @@ class ConfirmationRequestTester {
 		// new SubscriptionTest({ which: 'stream' }).test(); // subscription to stream channels is deprecated
 		new JoinMethodTest().test();
 		new OriginTeamPropagates().test();
-		/* These tests are disabled because confirmation links are deprecated
-		new InvalidTokenTest().test();
-		new TokenExpiredTest().test();
-		new NotConfTokenTest().test();
-		new NoUidTest().test();
-		new UserNotFound().test();
-		new NoIssuanceTest().test();
-		new TokenDeprecatedTest().test();
-		new TrackTokenExpiredTest().test();
-		new TrackTokenDeprecatedTest().test();
-		*/
+		// These tests are disabled because confirmation links are deprecated
+		//new InvalidTokenTest().test();
+		//new TokenExpiredTest().test();
+		//new NotConfTokenTest().test();
+		//new NoUidTest().test();
+		//new UserNotFound().test();
+		//new NoIssuanceTest().test();
+		//new TokenDeprecatedTest().test();
+		//new TrackTokenExpiredTest().test();
+		//new TrackTokenDeprecatedTest().test();
 		new TrackCodeExpiredTest().test();
 		new TrackIncorrectCodeTest().test();
 		new ReuseCodeTest().test();
+		new EligibleJoinCompaniesTest().test();
+		new IsWebmailTest().test();
+		new AccountIsConnectedTest().test();
+		new AccountIsConnectedFalseTest().test();
+		new AccountIsConnectedByOrgTest().test();
+		new AccountIsConnectedByOrgFalseTest().test();
 	}
 }
 

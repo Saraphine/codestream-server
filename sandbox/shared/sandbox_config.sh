@@ -2,8 +2,12 @@
 # Common routines for codestream-server sandboxes
 
 # Defaults values
-[ -n "$CSBE_NODE_VER" ] && _defaultNodeVersion=$CSBE_NODE_VER || _defaultNodeVersion=12.14.1
+[ -n "$CSBE_NODE_VER" ] && _defaultNodeVersion=$CSBE_NODE_VER || _defaultNodeVersion=16.13.2
 [ -z "$CSBE_API_DEFAULT_PORT" ] && export CSBE_API_DEFAULT_PORT=12079
+
+function sbcfg_is_mono_repo_installation {
+	[ "$CSSVC_BACKEND_ROOT" = "$CSBE_TOP" ]
+}
 
 function sbcfg_get_var {
 	local _var=$1
@@ -25,6 +29,29 @@ function sbcfg_check_cfg_prop {
 	return 0
 }
 
+function sbcfg_setup_for_newrelic_instrumentation {
+	local repoRoot="$1" sandboxTop="$2" shortName="$3"
+	[ -n "$NEW_RELIC_METADATA_COMMIT$CSSVC_NEWRELIC_LICENSE_KEY$NEW_RELIC_METADATA_RELEASE_TAG" ] && echo "newrelic instrumentation variables already set" && return
+	grep -q licenseIngestKey $CSSVC_CFG_FILE || { echo "licenseIngestKey prop not in config file. No instrumenting today."; return; }
+	[ -z "$CSSVC_NEWRELIC_LICENSE_KEY" ] && export CSSVC_NEWRELIC_LICENSE_KEY=$(get-json-property -j $CSSVC_CFG_FILE -p integrations.newrelic.cloud.licenseIngestKey)
+	if [ -d "$repoRoot/.git" ]; then
+		echo "shortName=$shortName"
+		export NEW_RELIC_METADATA_COMMIT=$(cd "$repoRoot" && git rev-parse HEAD)
+		export NEW_RELIC_METADATA_RELEASE_TAG="$shortName-$(get-json-property -j "$sandboxTop/package.json" -p version)"
+		return
+	fi
+	# similar logic to server_utils/get_asset_data.js
+	[ ! -f "$sandboxTop/package.json" ] && echo "cannot determine SHA for instrumentation. package.json not found" && return
+	local assetName=$(get-json-property -j "$sandboxTop/package.json" -p name)
+	local assetFile="$sandboxTop/$assetName.info"
+	[ ! -f "$assetFile" ] && echo "cannot determine SHA for instrumentation. $assetFile not found" && return
+	export NEW_RELIC_METADATA_RELEASE_TAG="$shortName-$(get-json-property -j "$sandboxTop/$assetName.info" -p version)"
+	local primaryRepo=$(get-json-property -j "$sandboxTop/$assetName.info" -p primaryRepo)
+	export NEW_RELIC_METADATA_COMMIT=$(get-json-property -j "$sandboxTop/$assetName.info" -p repoCommitId.$primaryRepo)
+	# accomodate sandbox '-private' repo model for private branch development
+	[ -z "$NEW_RELIC_METADATA_COMMIT" ] && export NEW_RELIC_METADATA_COMMIT=$(get-json-property -j "$sandboxTop/$assetName.info" -p repoCommitId.${primaryRepo}-private)
+}
+
 function sbcfg_initialize {
 	local sbPrefix=$1
 
@@ -40,6 +67,8 @@ function sbcfg_initialize {
 	local sbData=$(sbcfg_get_var ${sbPrefix}_DATA)
 	local sbPids=$(sbcfg_get_var ${sbPrefix}_PIDS)
 	local sbCfgFile=$(sbcfg_get_var ${sbPrefix}_CFG_FILE)
+	local sbRepoRoot=$(sbcfg_get_var ${sbPrefix}_REPO_ROOT)
+	local sbShortName=$(sbcfg_get_var ${sbPrefix}_SHORT_NAME)
 
 	# ----- SANDBOX OPTIONS (for single-service sandboxes only)
 	[ -z "$CSBE_TOP" ] && { sandutil_load_options $sbRoot || { echo "failed to load options for $sbRoot" >&2 && return 1; } }
@@ -77,7 +106,7 @@ function sbcfg_initialize {
 	if [ -n "$CSSVC_CFG_URL" ]; then 
 		# ---- config stored in mongo
 		# for local development only, CSSVC_CONFIGURATION indicates config file to use for initialization
-		if [ "$CSSVC_ENV" = "local"  -a  -n "$CSSVC_CONFIGURATION"  -a  -n "$CS_API_SANDBOX" ]; then
+		if sandutil_is_local_environment && [ -n "$CSSVC_CONFIGURATION"  -a  -n "$CS_API_SANDBOX" ]; then
 			sandutil_get_codestream_cfg_file "$CS_API_SANDBOX" "$CSSVC_CONFIGURATION" "$CSSVC_ENV" "" noReport
 			export CS_API_DEFAULT_CFG_FILE=$CSSVC_CFG_FILE
 			unset CSSVC_CFG_FILE
@@ -98,11 +127,15 @@ function sbcfg_initialize {
 		echo "CSSVC_CFG_FILE=$CSSVC_CFG_FILE"
 	fi
 
+	# For instrumenting backend services
+	[ -n "$CSSVC_CFG_FILE" ] && ! sbcfg_is_mono_repo_installation && sbcfg_setup_for_newrelic_instrumentation "$sbRepoRoot" "$sbTop" "$sbShortName"
+
 	# ----- REMOTE DEVELOPMENT SANDBOXES
 	# local development on ec2 instances (remote hosts) should reference their
 	# hostname and not 'localhost' when constructing URLs so we set
-	if [ "$CSSVC_ENV" = "local"  -a  $(sandutil_is_network_instance) -eq 1 ]; then
+	if sandutil_is_local_environment && sandutil_is_network_instance ; then
 		export CS_API_PUBLIC_URL="https://`hostname`:$CSBE_API_DEFAULT_PORT"
 		echo "CS_API_PUBLIC_URL=$CS_API_PUBLIC_URL [this is a remote development host]"
+		[ -n "$DT_USER" ] && export CS_API_CALLBACK_ENV="dev-$DT_USER"
 	fi
 }

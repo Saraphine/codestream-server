@@ -28,6 +28,7 @@ class TestStreamCreator {
 		if (typeof this.streamOptions.creatorIndex !== 'number' || !this.streamOptions.type) {
 			return callback();
 		}
+		throw 'creation of streams is deprecated';
 		const streamOptions = {
 			type: this.streamOptions.type,
 			privacy: this.streamOptions.privacy,
@@ -91,6 +92,7 @@ class TestStreamCreator {
 		if (!this.stream && !this.teamStream) {
 			throw 'no stream for creating test post';
 		}
+
 		const postOptions = {
 			streamId: this.stream ? this.stream.id : this.teamStream.id
 		};
@@ -130,19 +132,40 @@ class TestStreamCreator {
 				delete this.postOptions.postData[n].wantReview;
 			}
 		}
+
+		if (
+			this.postOptions.wantCodeError ||
+			(
+				this.postOptions.postData && 
+				this.postOptions.postData[n] && 
+				this.postOptions.postData[n].wantCodeError
+			)
+		) {
+			this.setCodeErrorOptions(postOptions, n);	
+			if (this.postOptions.postData && this.postOptions.postData[n]) {
+				delete this.postOptions.postData[n].wantCodeError;
+			}
+		}
 	
 		if (this.postOptions.postData && this.postOptions.postData[n]) {
 			const postData = this.postOptions.postData[n];
 			if (typeof postData.replyTo !== 'undefined') {
 				postOptions.parentPostId = this.postData[postData.replyTo].post.id;
+				postOptions.streamId = this.postData[postData.replyTo].post.streamId;
 				delete postData.replyTo;
 			}
 			Object.assign(postOptions, this.postOptions.postData[n]);
 		}
 
-		const creatorIndex = this.postOptions.creatorIndex instanceof Array ? 
-			this.postOptions.creatorIndex[n] :
-			this.postOptions.creatorIndex;
+		let creatorIndex;
+		if (this.postOptions.postData && this.postOptions.postData[n] && this.postOptions.postData[n].creatorIndex !== undefined) {
+			creatorIndex = this.postOptions.postData[n].creatorIndex;
+		} else {
+			creatorIndex = this.postOptions.creatorIndex instanceof Array ? 
+				this.postOptions.creatorIndex[n] :
+				this.postOptions.creatorIndex;
+		}
+	
 		postOptions.token = this.users[creatorIndex || 0].accessToken;
 		this.test.postFactory.createRandomPost(
 			(error, response) => {
@@ -191,6 +214,10 @@ class TestStreamCreator {
 			(this.postOptions.postData && this.postOptions.postData[n] && this.postOptions.postData[n].wantMarkers)) {
 			this.setMarkerOptions(options);
 		}
+	}
+
+	setCodeErrorOptions (options, n) {
+		options.wantCodeError = true;
 	}
 
 	setMarkerOptions (options) {

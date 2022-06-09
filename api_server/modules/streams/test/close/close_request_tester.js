@@ -10,10 +10,13 @@ const MustBeDirectTest = require('./must_be_direct_test');
 const MessageToUserTest = require('./message_to_user_test');
 const GetStreamTest = require('./get_stream_test');
 const GetStreamsTest = require('./get_streams_test');
+const CloseStreamDeprecatedTest = require('./close_stream_deprecated_test');
 
 class CloseRequestTester {
 
 	closeTest () {
+		new CloseStreamDeprecatedTest().test();
+		/*
 		new CloseTest().test();
 		new ACLTest().test();
 		new ACLTeamTest().test();
@@ -22,6 +25,7 @@ class CloseRequestTester {
 		new MessageToUserTest().test();
 		new GetStreamTest().test();
 		new GetStreamsTest().test();
+		*/
 	}
 }
 

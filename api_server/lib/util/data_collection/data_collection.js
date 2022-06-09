@@ -108,6 +108,14 @@ class DataCollection {
 		return model;
 	}
 
+	// create a model directly, no caching or transaction 
+	async createDirect (data, options = {}) {
+		return this.databaseCollection.create(
+			data,
+			Object.assign({}, options, { requestId: this.requestId })
+		);
+	}
+	
 	// create many models using the data passed in
 	async createMany (documents, options = {}) {
 		await Promise.all(documents.map(async document => {
@@ -182,6 +190,11 @@ class DataCollection {
 			data,
 			options
 		});
+	}
+
+	// count by query, pass through to the database collection
+	async countByQuery(query, options = {}) {
+		return await this.databaseCollection.countByQuery(query, options);
 	}
 
 	// perform a direct find-and-modify operation against the database

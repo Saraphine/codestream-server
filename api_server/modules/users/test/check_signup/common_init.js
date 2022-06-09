@@ -3,7 +3,7 @@
 'use strict';
 
 const BoundAsync = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/bound_async');
-const UUID = require('uuid/v4');
+const UUID = require('uuid').v4;
 
 class CommonInit {
 
@@ -21,7 +21,7 @@ class CommonInit {
 	// register (but don't confirm) a user, 
 	registerUser (callback) {
 		this.signupToken = UUID();
-		const userData = this.userFactory.getRandomUserData();
+		const userData = this.userFactory.getRandomUserData({ wantWebmail: this.wantWebmail });
 		//userData.wantLink = true;   // we'll get back a confirmation link 
 		userData._confirmationCheat = this.apiConfig.sharedSecrets.confirmationCheat;  // cheat code to get back the confirmation link 
 		userData._subscriptionCheat = this.apiConfig.sharedSecrets.subscriptionCheat;
@@ -64,7 +64,7 @@ class CommonInit {
 	// create a random team for the user to be on, this is required for proper use of the signup token
 	createTeam (callback) {
 		if (this.dontCreateTeam) { return callback(); }
-		this.teamFactory.createRandomTeam(
+		this.companyFactory.createRandomCompany(
 			(error, response) => {
 				if (error) { return callback(error); }
 				this.team = response.team;

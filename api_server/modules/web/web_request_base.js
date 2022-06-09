@@ -17,7 +17,7 @@ class WebRequestBase extends RestfulRequest {
 		const partials = new Partials(this.data);
 
 		this.module.evalTemplate(this, templateName, Object.assign(viewModel, {
-			partial_menu_model: await partials.getMenu(this.user, viewModel.teamName),
+			partial_menu_model: await partials.getMenu(this.user, this.team),
 			partial_html_head_model: {
 				version: this.module.versionInfo()
 			}
@@ -32,7 +32,15 @@ class WebRequestBase extends RestfulRequest {
 	 * @memberof WebRequestBase
 	 */
 	createLauncherModel (repoId) {
+		let environment;
+		const { environmentGroup } = this.api.config;
+		const { runTimeEnvironment } = this.api.config.sharedGeneral;
+		if (environmentGroup && environmentGroup[runTimeEnvironment]) {
+			environment = environmentGroup[runTimeEnvironment].shortName;
+		}
+	
 		let result = {
+			environment,
 			csrf: this.request.csrfToken(),
 			ides: ides,
 			src: decodeURIComponent(this.request.query.src || ''),
@@ -47,6 +55,13 @@ class WebRequestBase extends RestfulRequest {
 		};
 		result.isDefaultJetBrains = result.lastOrigin && result.lastOrigin.moniker.indexOf('jb-') === 0;
 		return result;
+	}
+
+	decodeLinkId (linkId, pad) {
+		linkId = linkId.replace(/-/g, '+').replace(/_/g, '/');
+		const padding = '='.repeat(pad);
+		linkId = `${linkId}${padding}`;
+		return Buffer.from(linkId, 'base64').toString('hex');
 	}
 
 	/**

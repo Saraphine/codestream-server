@@ -5,6 +5,7 @@ const CodeStreamAPITest = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/
 const UserTestConstants = require('../user_test_constants');
 const UserAttributes = require('../../user_attributes');
 const BoundAsync = require(process.env.CSSVC_BACKEND_ROOT + '/shared/server_utils/bound_async');
+const DetermineCapabilities = require(process.env.CSSVC_BACKEND_ROOT + '/api_server/modules/versioner/determine_capabilities');
 
 class ConfirmationTest extends CodeStreamAPITest {
 
@@ -39,7 +40,8 @@ class ConfirmationTest extends CodeStreamAPITest {
 	before (callback) {
 		BoundAsync.series(this, [
 			super.before,
-			this.registerUser
+			this.registerUser,
+			this.determineExpectedCapabilities
 		], callback);
 	}
 
@@ -89,6 +91,13 @@ class ConfirmationTest extends CodeStreamAPITest {
 		return this.userFactory.getRandomUserData();
 	}
 
+	determineExpectedCapabilities (callback) {
+		(async () => {
+			this.expectedCapabilities = await DetermineCapabilities({ config: this.apiConfig });
+			callback();
+		})();
+	}
+
 	// validate the response to the test request
 	validateResponse (data) {
 		// validate that we got back the expected user, with an access token and pubnub key
@@ -102,18 +111,15 @@ class ConfirmationTest extends CodeStreamAPITest {
 			((user.preferences && user.preferences.acceptedTOS) || errors.push('acceptedTOS not set in preferences')) &&
 			((typeof user.registeredAt === 'number' && user.registeredAt > this.beforeConfirmTime) || errors.push('registeredAt not properly set')) &&
 			((typeof user.lastLogin === 'number' && user.lastLogin > this.beforeConfirmTime) || errors.push('lastLogin not properly set')) &&
-			((user.firstSessionStartedAt === undefined) || errors.push('firstSesssionStartedAt should not have been set'))
+			((user.firstSessionStartedAt === undefined) || errors.push('firstSesssionStartedAt should not have been set')) &&
+			((data.isWebmail === (this.isWebmail || false)) || errors.push('isWebmail not set to false'))
 		);
 		Assert(result === true && errors.length === 0, 'response not valid: ' + errors.join(', '));
 		Assert(data.accessToken, 'no access token');
 		Assert(this.usingSocketCluster || data.pubnubKey, 'no pubnub key');
 		Assert(this.usingSocketCluster || data.pubnubToken, 'no pubnub token');
 		Assert(data.broadcasterToken, 'no broadcaster token');
-		const expectedCapabilities = { ...UserTestConstants.API_CAPABILITIES };
-		if (this.apiConfig.email.suppressEmails) {
-			delete expectedCapabilities.emailSupport;
-		}
-		Assert.deepEqual(data.capabilities, expectedCapabilities, 'capabilities are incorrect');
+		Assert.deepEqual(data.capabilities, this.expectedCapabilities, 'capabilities are incorrect');
 
 		this.validateSanitized(user, UserTestConstants.UNSANITIZED_ATTRIBUTES_FOR_ME);
 	}
